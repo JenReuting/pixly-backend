@@ -2,9 +2,8 @@
 
 import os
 from dotenv import load_dotenv
-from flask import Flask, request, redirect
+from flask import Flask, request, redirect, jsonify
 from werkzeug.utils import secure_filename
-
 
 import boto3
 from boto3.s3.transfer import TransferConfig
@@ -12,16 +11,16 @@ from botocore.exceptions import ClientError
 
 from flask_debugtoolbar import DebugToolbarExtension
 
-from models import (
-    db, connect_db, Image
-)
+# from models import (
+#     db, connect_db, Image
+# )
 
 load_dotenv()
 
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URL'] = os.environ['DATABASE_URL'].replace(
-    "postgres://", "postgresql://")
+# app.config['SQLALCHEMY_DATABASE_URL'] = os.environ['DATABASE_URL'].replace(
+#     "postgres://", "postgresql://")
 
 
 app.config['S3_BUCKET'] = os.environ["S3_BUCKET_NAME"]
@@ -29,9 +28,9 @@ app.config['S3_KEY'] = os.environ["AWS_ACCESS_KEY"]
 app.config['S3_SECRET'] = os.environ["AWS_ACCESS_SECRET"]
 app.config['S3_LOCATION'] = 'http://{}.s3.amazonaws.com/'.format(
     os.environ["S3_BUCKET_NAME"])
-toolbar = DebugToolbarExtension(app)
+# toolbar = DebugToolbarExtension(app)
 
-connect_db(app)
+# connect_db(app)
 
 ### UPLOAD CONFIG ##
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
@@ -56,6 +55,7 @@ def api_upload_image():
     creates new image instance in db, respond with AWS link.
 
     """
+    print('Reached api_upload')
 
     if "image" not in request.files:
         return "No image in request.files"
@@ -63,33 +63,38 @@ def api_upload_image():
     file = request.files["image"]
 
     if file.filename == "":
-        return "Please select an image to upload"
+        return jsonify("Please select an image to upload")
 
-    if file and allowed_file(file.filename):
+    if file:
         file.filename = secure_filename(file.filename)
-        s3.upload_file(
-            Bucket=app.config["S3_BUCKET"],
-            Filename=filename,
-            Key=filename)
-        # output = send_to_s3(file, app.config["S3_BUCKET"])
-        return str()  # should be url
+        print('print file ------------------>', file)
+        # with open(file, "rb") as f:
+        response = s3.upload_fileobj(
+            Fileobj=file,
+            Bucket='S3_BUCKET',
+            Key="OBJECT_NAME",
+            ExtraArgs={'Metadata': {}}
+        )
+        print('response from AWS ----------->', response)
+        #     return (response)  # should be url
     else:
-        return redirect('/')
+        return 'Invalid'
 
     # data = request.json
 
     # call to AWS api - get image link
 
 
-def allowed_file(filename):
-    ''' Confirm uploaded image is correct file type.
-    Accepts only JPG or JPEG files, and rejects others. Returns true/false
-    '''
-    return ('.' in filename
-            and filename.rsplit('.', 1)[1].tolower()
-            in ALLOWED_EXTENSIONS)
+# def allowed_file(filename):
+#     ''' Confirm uploaded image is correct file type.
+#     Accepts only JPG or JPEG files, and rejects others. Returns true/false
+#     '''
+#     return ('.' in filename
+#             and filename.rsplit('.', 1)[1].tolower()
+#             in ALLOWED_EXTENSIONS)
 
 
+# verbose version - multi part, breaks into chunks
 # def upload_file(file_name, bucket, object_name=None):
 #     ''' Uploads the file to S3 bucket.
 

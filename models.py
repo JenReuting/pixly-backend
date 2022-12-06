@@ -1,35 +1,37 @@
-from sqlalchemy import SQLAlchemy
+# from flask_sqlalchemy import SQLAlchemy
 
-db = SQLAlchemy()
+# db = SQLAlchemy()
 
-DEFAULT_IMAGE_URL = ''
+# DEFAULT_IMAGE_URL = ''
 
-class Image(db.model):
-    """
-    --
-     """
 
-    __tablename__ = 'images'
+# class Image(db.model):
+#     """
+#     --
+#      """
 
-    id = db.Column(
-        db.Integer,
-        primary_key=True,
-        autoincrement=True)
+#     __tablename__ = 'images'
 
-    filename = db.Column(
-        db.Text,
-        nullable=False,
-        unique=False
-    )
+#     id = db.Column(
+#         db.Integer,
+#         primary_key=True,
+#         autoincrement=True)
 
-    image_url = db.Column(
-        db.Text,
-        default=DEFAULT_IMAGE_URL,
-    )
+#     filename = db.Column(
+#         db.Text,
+#         nullable=False,
+#         unique=False
+#     )
 
-def connect_db(app):
-    """ Connect to database. """
+#     image_url = db.Column(
+#         db.Text,
+#         default=DEFAULT_IMAGE_URL,
+#     )
 
-    app.app_context().push()
-    db.app = app
-    db.init_app(app)
+
+# def connect_db(app):
+#     """ Connect to database. """
+
+#     app.app_context().push()
+#     db.app = app
+#     db.init_app(app)
