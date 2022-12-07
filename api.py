@@ -1,12 +1,21 @@
 from werkzeug.utils import secure_filename
 from botocore.exceptions import ClientError
-from app import s3_resource, s3_client
+from app import s3 as s3_client
 
 
-class AWS_api:
+class api:
     ''' Interact with AWS API '''
 
     # Fetch file from AWS
+
+    @classmethod
+    def createURL(self, bucket_name, key):
+
+        url = s3_client.generate_presigned_url(
+            ClientMethod='get_object',
+            Params={'Bucket': bucket_name, 'Key': key},
+            ExpiresIn=3600)
+        return url
 
     @classmethod
     def download(self, bucket_name, file_name, object_name=None):
@@ -64,5 +73,3 @@ class AWS_api:
             print(error)
             return False
         return file_name
-
-    # Update
