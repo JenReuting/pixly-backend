@@ -1,23 +1,31 @@
+from models import (
+    connect_db, Image
+)
+from flask_debugtoolbar import DebugToolbarExtension
+
 import os
 from dotenv import load_dotenv
 from flask import Flask, request
-from Aws import Aws
-from Image import Image
+from AWS import AWS
 
-# from flask_debugtoolbar import DebugToolbarExtension
 app = Flask(__name__)
 
-# from models import (
-#     db, connect_db, Image
-# )
-
 # toolbar = DebugToolbarExtension(app)
-# connect_db(app)
+
 load_dotenv()
 
+############ DB IMPORT CONFIG ###########################
 
-app.config['SQLALCHEMY_DATABASE_URL'] = os.environ['DATABASE_URL'].replace("postgres://", "postgresql://")
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    os.environ['DATABASE_URL'].replace("postgres://", "postgresql://"))
+app.config['SQLALCHEMY_ECHO'] = False
+# app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
+connect_db(app)
+
+
+toolbar = DebugToolbarExtension(app)
 
 
 ############ AWS IMPORT CONFIG ###########################
@@ -26,9 +34,7 @@ app.config['S3_BUCKET'] = os.environ["AWS_BUCKET_NAME"]
 app.config['S3_KEY'] = os.environ["AWS_ACCESS_KEY"]
 app.config['S3_SECRET'] = os.environ["AWS_ACCESS_SECRET"]
 
-BUCKET_NAME=os.environ["AWS_BUCKET_NAME"]
-
-
+BUCKET_NAME = os.environ["AWS_BUCKET_NAME"]
 
 
 ############################# Image Upload ################################
@@ -38,11 +44,13 @@ def upload_image():
     """ Handle image upload. Adds image and returns data about new image.
     """
     image = request.files['image']
+    print('image from route', image)
 
     # NOTE: request.form gives us the other data in the multipart request (ex: request.form['filename'])
 
     image.key = Image.get_unique_key(image.filename)
-    uploaded_image = Aws.upload(image)
+
+    uploaded_image = AWS.upload(image, BUCKET_NAME)
 
     url = uploaded_image
 
@@ -64,7 +72,6 @@ def upload_image():
 #     # Use file_name if object_name not specified
 #     if object_name is None:
 #         object_name = os.path.basename(file_name)
-
 
 
 ############################## Image Modification ###########################
