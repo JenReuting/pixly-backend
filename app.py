@@ -1,5 +1,5 @@
 from models import (
-    connect_db, Image
+    db, connect_db, Image
 )
 from flask_debugtoolbar import DebugToolbarExtension
 
@@ -43,35 +43,19 @@ BUCKET_NAME = os.environ["AWS_BUCKET_NAME"]
 def upload_image():
     """ Handle image upload. Adds image and returns data about new image.
     """
-    image = request.files['image']
-    print('image from route', image)
+    file = request.files['image']
+    print('image from route', file)
 
     # NOTE: request.form gives us the other data in the multipart request (ex: request.form['filename'])
 
-    image.key = Image.get_unique_key(image.filename)
+    try:
+        image = Image.create(file, BUCKET_NAME)
+        print('Successfully created image', image)
+    except ValueError as e:
+        print(e)
 
-    uploaded_image = AWS.upload(image, BUCKET_NAME)
+    db.session.commit()
 
-    url = uploaded_image
-
-    return {"url": url}
-
-
-# verbose version - multi part, breaks into chunks
-# def upload_file(file_name, bucket, object_name=None):
-#     ''' Uploads the file to S3 bucket.
-
-#         Params:
-#             file_name: File to upload
-#             bucket: target s3 Bucket
-#             object_name: s3 object name. uses file_name if not specified
-#         Return:
-#             True if successful upload, else False
-#     '''
-
-#     # Use file_name if object_name not specified
-#     if object_name is None:
-#         object_name = os.path.basename(file_name)
-
+    return {"url": image.image_url}
 
 ############################## Image Modification ###########################
