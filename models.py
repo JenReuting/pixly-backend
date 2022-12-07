@@ -29,6 +29,11 @@ class Image(db.Model):
         primary_key=True,
         autoincrement=True)
 
+    title = db.Column(
+        db.Text,
+        nullable=True
+    )
+
     file_name = db.Column(
         db.Text,
         nullable=False,
@@ -43,12 +48,12 @@ class Image(db.Model):
     ########## helper functions ###############
 
     @classmethod
-    def allowed_file(filename):
+    def allowed_file(cls, filename):
         return "." in filename and \
             filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
     @classmethod
-    def get_unique_key(filename):
+    def get_unique_key(cls, filename):
         ext = filename.rsplit(".", 1)[1].lower()
         uuid_key = uuid.uuid4().hex
         return f"{uuid_key}.{ext}"
@@ -59,14 +64,17 @@ class Image(db.Model):
         Pushes image to database, and uploads to s3.
         returns image object
         '''
-
         file.key = Image.get_unique_key(file.filename)
         s3_image_url = AWS.upload(file, bucket_name)
 
         image = Image(
+            title=title,
             file_name=file.key,
             image_url=s3_image_url
         )
 
         db.session.add(image)
+
+        print('after creating image', image)
+
         return image
