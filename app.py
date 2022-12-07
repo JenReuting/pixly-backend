@@ -1,10 +1,8 @@
 """ SQLAlchemy models for Pixly """
 
 import os
-import io
-# from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
-from flask import Flask, request
+from flask import Flask
 import boto3
 
 # from flask_debugtoolbar import DebugToolbarExtension
