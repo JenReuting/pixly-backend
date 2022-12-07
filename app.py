@@ -57,7 +57,9 @@ def upload_image():
         print(e)
 
     db.session.commit()
-
+    print("image from upload image -----> ", image.image_url)
+    print("image from upload imag, file_name -----> ", image.file_name)
+    print("image from upload image ----->,  title", image.title)
     return {"url": image.image_url}
 
 
