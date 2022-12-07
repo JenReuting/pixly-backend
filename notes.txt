@@ -1,0 +1,7 @@
+ |        response = client.abort_multipart_upload(
+ |            Bucket='string',
+ |            Key='string',
+ |            UploadId='string',
+ |            RequestPayer='requester',
+ |            ExpectedBucketOwner='string'
+ |        )
