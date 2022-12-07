@@ -1,9 +1,22 @@
 from werkzeug.utils import secure_filename
 from botocore.exceptions import ClientError
-from app import s3 as s3_client
+import boto3
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+s3 = boto3.client(
+    "s3",
+    aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
+    aws_secret_access_key=os.environ["AWS_ACCESS_SECRET"]
+)
+
+BUCKET_NAME=os.environ["AWS_BUCKET_NAME"]
+S3_BASE_URL = f'https://{BUCKET_NAME}.s3.amazonaws.com/'
 
 
-class api:
+class Aws:
     ''' Interact with AWS API '''
 
     # Fetch file from AWS
@@ -17,13 +30,13 @@ class api:
                 key: name as stored on s3
                 expires: in seconds
             Returns: string
-
         '''
 
-        url = s3_client.generate_presigned_url(
+        url = s3.generate_presigned_url(
             ClientMethod='get_object',
             Params={'Bucket': bucket_name, 'Key': key},
             ExpiresIn=expires)
+
         return url
 
     @classmethod
@@ -48,8 +61,8 @@ class api:
 
         try:
             with open(file_name, 'wb') as file:
-                file = s3_client.download_fileobj(
-                    bucket_name,
+                file = s3.download_fileobj(
+                    BUCKET_NAME,
                     key,
                     file
                 )
@@ -59,7 +72,7 @@ class api:
             return False
 
     @classmethod
-    def upload(self, file_name, bucket_name, key=None, metadata={}) -> bool:
+    def upload(self, file):
         '''
         Uploads a file to S3 bucket.
 
@@ -72,18 +85,31 @@ class api:
                 True if successful upload, else False
         '''
 
-        if key is None:
-            key = file_name
+
+        print("file from AWS class -----> ", file)
+
 
         try:
-            with open(file_name, 'rb') as file:
-                s3_client.upload_fileobj(
-                    file,
-                    bucket_name,
-                    key,
-                    ExtraArgs={
-                        'Metadata': metadata})
+            s3.upload_fileobj(
+                file,
+                BUCKET_NAME,
+                file.key)
+
         except ClientError as error:
             print(error)
-            return False
-        return file_name
+            return {"errors": str(error)}
+
+        return f"{S3_BASE_URL}{file.key}"
+
+        # try:
+        #     # with open(file_name, 'rb') as file:
+        #     s3.upload_fileobj(
+        #         file,
+        #         bucket_name,
+        #         key,
+        #         ExtraArgs={
+        #             'Metadata': metadata})
+        # except ClientError as error:
+        #     print(error)
+        #     return False
+        # return f"{S3_BASE_URL}{file.key}"

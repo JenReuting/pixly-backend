@@ -1,12 +1,11 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, session
-from PIL import Image
-import uuid
-import boto3
+from flask import Flask, request
+from Aws import Aws
+from Image import Image
+
 # from flask_debugtoolbar import DebugToolbarExtension
 app = Flask(__name__)
-from werkzeug.wrappers import Request, Response
 
 # from models import (
 #     db, connect_db, Image
@@ -28,23 +27,9 @@ app.config['S3_KEY'] = os.environ["AWS_ACCESS_KEY"]
 app.config['S3_SECRET'] = os.environ["AWS_ACCESS_SECRET"]
 
 BUCKET_NAME=os.environ["AWS_BUCKET_NAME"]
-S3_BASE_URL = f'https://{BUCKET_NAME}.s3.amazonaws.com/'
-ALLOWED_EXTENSIONS={"jpg", "jpeg", "gif", "png"}
 
-s3 = boto3.client(
-    "s3",
-    aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
-    aws_secret_access_key=os.environ["AWS_ACCESS_SECRET"]
-)
 
-def allowed_file(filename):
-    return "." in filename and \
-        filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def get_unique_key(filename):
-    ext = filename.rsplit(".", 1)[1].lower()
-    uuid_key = uuid.uuid4().hex
-    return f"{uuid_key}.{ext}"
 
 ############################# Image Upload ################################
 
@@ -56,67 +41,12 @@ def upload_image():
 
     # NOTE: request.form gives us the other data in the multipart request (ex: request.form['filename'])
 
-    image.key = get_unique_key(image.filename)
-    uploaded_image = upload_file_to_s3(image)
-
+    image.key = Image.get_unique_key(image.filename)
+    uploaded_image = Aws.upload(image)
 
     url = uploaded_image
 
     return {"url": url}
-
-    opened_image = Image.open(image.stream)
-    print("Opened image from API body --------------->", opened_image)
-    print("Image size from API body --------------->", opened_image.size)
-
-    if "image" not in request.files:
-        return "No image in request.files"
-
-
-
-    # if file.filename == "":
-    #     return "Please select an image to upload"
-
-    # if file:
-    #     file.filename = secure_filename(file.filename)
-    #     output = upload_file_to_s3(file)
-    #     return str(output) ##should be url
-
-    #data = request.json
-
-# call to AWS api - get image link
-
-
-
-
-def upload_file_to_s3(file):
-
-    # with open(file, 'rb') as data:
-    #     s3.upload_fileobj(data, BUCKET_NAME, file.key)
-
-    print("inside upload helper function, rile ----> ", file)
-    try:
-        s3.upload_fileobj(
-            file,
-            BUCKET_NAME,
-            file.key,
-        )
-    except Exception as e:
-        # if s3 upload fails
-        return {"errors": str(e)}
-
-    return  f"{S3_BASE_URL}{file.key}"
-
-
-
-
-
-# def allowed_file(filename):
-#     ''' Confirm uploaded image is correct file type.
-#     Accepts only JPG or JPEG files, and rejects others. Returns true/false
-#     '''
-#     return ('.' in filename
-#             and filename.rsplit('.', 1)[1].tolower()
-#             in ALLOWED_EXTENSIONS)
 
 
 # verbose version - multi part, breaks into chunks
