@@ -1,25 +1,43 @@
-from werkzeug.utils import secure_filename
+# from werkzeug.utils import secure_filename
 from botocore.exceptions import ClientError
 import boto3
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
-s3 = boto3.client(
+s3_client = boto3.client(
     "s3",
     aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
     aws_secret_access_key=os.environ["AWS_ACCESS_SECRET"]
 )
 
-BUCKET_NAME=os.environ["AWS_BUCKET_NAME"]
-S3_BASE_URL = f'https://{BUCKET_NAME}.s3.amazonaws.com/'
 
-
-class Aws:
+class AWS:
     ''' Interact with AWS API '''
 
-    # Fetch file from AWS
+    @classmethod
+    def create_bucket(self, bucket_name, region='us-west-1'):
+        '''' Create a new bucket on S3
+
+            If a region is not specified, the bucket is created in the S3 default
+            region (us-east-1).
+
+                Params:
+                    bucket_name: Bucket to create
+                    region: String region to create bucket in, e.g., 'us-west-2'
+                Returns:
+                    True if created, else false
+
+        '''
+
+        try:
+            s3_client.create_bucket(Bucket=bucket_name)
+        except ClientError as e:
+            print('create_bucket ERROR', e)
+            return False
+        return True
 
     @classmethod
     def signed_url(self, bucket_name, key, expires=3600):
@@ -32,7 +50,7 @@ class Aws:
             Returns: string
         '''
 
-        url = s3.generate_presigned_url(
+        url = s3_client.generate_presigned_url(
             ClientMethod='get_object',
             Params={'Bucket': bucket_name, 'Key': key},
             ExpiresIn=expires)
@@ -42,7 +60,7 @@ class Aws:
     @classmethod
     def object_url(self, bucket_name, key):
         ''' Construct Object URL -> requires read access '''
-        return f'https://{bucket_name}.s3.us-west-1.amazonaws.com/{key}'
+        return f'https://{bucket_name}.s3.amazonaws.com/{key}'
 
     @classmethod
     def download(self, bucket_name, file_name, key=None):
@@ -61,8 +79,8 @@ class Aws:
 
         try:
             with open(file_name, 'wb') as file:
-                file = s3.download_fileobj(
-                    BUCKET_NAME,
+                file = s3_client.download_fileobj(
+                    bucket_name,
                     key,
                     file
                 )
@@ -72,7 +90,7 @@ class Aws:
             return False
 
     @classmethod
-    def upload(self, file):
+    def upload(self, file, bucket_name):
         '''
         Uploads a file to S3 bucket.
 
@@ -85,31 +103,20 @@ class Aws:
                 True if successful upload, else False
         '''
 
-
-        print("file from AWS class -----> ", file)
-
+        print(" -----> file from AWS class: ", file)
+        print(" -----> bucket_name: ", bucket_name)
+        print(" -----> key: ", file.key)
 
         try:
-            s3.upload_fileobj(
+            s3_client.upload_fileobj(
                 file,
-                BUCKET_NAME,
-                file.key)
-
+                bucket_name,
+                file.key
+            )
         except ClientError as error:
             print(error)
             return {"errors": str(error)}
 
-        return f"{S3_BASE_URL}{file.key}"
+        url = self.object_url(bucket_name, file.key)
 
-        # try:
-        #     # with open(file_name, 'rb') as file:
-        #     s3.upload_fileobj(
-        #         file,
-        #         bucket_name,
-        #         key,
-        #         ExtraArgs={
-        #             'Metadata': metadata})
-        # except ClientError as error:
-        #     print(error)
-        #     return False
-        # return f"{S3_BASE_URL}{file.key}"
+        return url
