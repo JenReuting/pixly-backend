@@ -1,4 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+
 from AWS import AWS
 import uuid
 
@@ -19,7 +21,7 @@ ALLOWED_EXTENSIONS = {"jpg", "jpeg", "gif", "png"}
 
 class Image(db.Model):
     """
-    --
+    Image in the system. Loaded to the DB, and to AWS s3.
     """
 
     __tablename__ = 'images'
@@ -44,8 +46,6 @@ class Image(db.Model):
         db.Text,
         default=DEFAULT_IMAGE_URL,
     )
-
-    ########## helper functions ###############
 
     @classmethod
     def allowed_file(cls, filename):
@@ -72,9 +72,17 @@ class Image(db.Model):
             file_name=file.key,
             image_url=s3_image_url
         )
+        print(image)
+        print(s3_image_url)
 
         db.session.add(image)
-
-        print('after creating image', image)
-
         return image
+
+    @classmethod
+    def update(cls, file_name):
+        ''' Method for updating an image file.
+        Updates database metadata, and uploads to S3.
+        '''
+
+        image = cls.query.filter_by(file_name=file_name).first()
+        print(image)

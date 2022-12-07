@@ -37,6 +37,8 @@ app.config['S3_SECRET'] = os.environ["AWS_ACCESS_SECRET"]
 BUCKET_NAME = os.environ["AWS_BUCKET_NAME"]
 
 
+
+
 ############################# Image Upload ################################
 
 @app.route('/upload', methods=["POST"])
@@ -57,5 +59,7 @@ def upload_image():
     db.session.commit()
 
     return {"url": image.image_url}
+
+
 
 ############################## Image Modification ###########################
