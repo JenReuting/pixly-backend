@@ -6,7 +6,6 @@ CREATE DATABASE pixly;
 \connect pixly
 
 \i pixly-schema.sql
-\i pixly-seed.sql
 
 \echo 'Delete and recreate pixly_test db?'
 \prompt 'Return for yes or control-C to cancel > ' foo
