@@ -1,88 +1,113 @@
-""" SQLAlchemy models for Pixly """
-
 import os
 from dotenv import load_dotenv
-from flask import Flask, request, redirect, jsonify
-from werkzeug.utils import secure_filename
-
+from flask import Flask, request, jsonify, session
+from PIL import Image
+import uuid
 import boto3
-from boto3.s3.transfer import TransferConfig
-from botocore.exceptions import ClientError
-
-from flask_debugtoolbar import DebugToolbarExtension
+# from flask_debugtoolbar import DebugToolbarExtension
+app = Flask(__name__)
+from werkzeug.wrappers import Request, Response
 
 # from models import (
 #     db, connect_db, Image
 # )
 
+# toolbar = DebugToolbarExtension(app)
+# connect_db(app)
 load_dotenv()
 
-app = Flask(__name__)
 
-# app.config['SQLALCHEMY_DATABASE_URL'] = os.environ['DATABASE_URL'].replace(
-#     "postgres://", "postgresql://")
-
-
-app.config['S3_BUCKET'] = os.environ["S3_BUCKET_NAME"]
-app.config['S3_KEY'] = os.environ["AWS_ACCESS_KEY"]
-app.config['S3_SECRET'] = os.environ["AWS_ACCESS_SECRET"]
-app.config['S3_LOCATION'] = 'http://{}.s3.amazonaws.com/'.format(
-    os.environ["S3_BUCKET_NAME"])
-# toolbar = DebugToolbarExtension(app)
-
-# connect_db(app)
-
-### UPLOAD CONFIG ##
-ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
+app.config['SQLALCHEMY_DATABASE_URL'] = os.environ['DATABASE_URL'].replace("postgres://", "postgresql://")
+app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
 
 
 ############ AWS IMPORT CONFIG ###########################
 
+app.config['S3_BUCKET'] = os.environ["AWS_BUCKET_NAME"]
+app.config['S3_KEY'] = os.environ["AWS_ACCESS_KEY"]
+app.config['S3_SECRET'] = os.environ["AWS_ACCESS_SECRET"]
+
+BUCKET_NAME=os.environ["AWS_BUCKET_NAME"]
+S3_BASE_URL = f'https://{BUCKET_NAME}.s3.amazonaws.com/'
+ALLOWED_EXTENSIONS={"jpg", "jpeg", "gif", "png"}
+
 s3 = boto3.client(
     "s3",
-    aws_access_key_id=app.config['S3_KEY'],
-    aws_secret_access_key=app.config['S3_SECRET']
+    aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
+    aws_secret_access_key=os.environ["AWS_ACCESS_SECRET"]
 )
 
-############################# Image Upload / Serving ################################
+def allowed_file(filename):
+    return "." in filename and \
+        filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def get_unique_key(filename):
+    ext = filename.rsplit(".", 1)[1].lower()
+    uuid_key = uuid.uuid4().hex
+    return f"{uuid_key}.{ext}"
+
+############################# Image Upload ################################
 
 @app.route('/upload', methods=["POST"])
-def api_upload_image():
-    """ Handle image upload from front-end. Adds image and returns data about new image.
-
-    Get new image data (as Base64), upload image to AWS, get AWS link,
-    creates new image instance in db, respond with AWS link.
-
+def upload_image():
+    """ Handle image upload. Adds image and returns data about new image.
     """
-    print('Reached api_upload')
+    image = request.files['image']
+
+    # NOTE: request.form gives us the other data in the multipart request (ex: request.form['filename'])
+
+    image.key = get_unique_key(image.filename)
+    uploaded_image = upload_file_to_s3(image)
+
+
+    url = uploaded_image
+
+    return {"url": url}
+
+    opened_image = Image.open(image.stream)
+    print("Opened image from API body --------------->", opened_image)
+    print("Image size from API body --------------->", opened_image.size)
 
     if "image" not in request.files:
         return "No image in request.files"
 
-    file = request.files["image"]
 
-    if file.filename == "":
-        return jsonify("Please select an image to upload")
 
-    if file:
-        file.filename = secure_filename(file.filename)
-        print('print file ------------------>', file)
-        # with open(file, "rb") as f:
-        response = s3.upload_fileobj(
-            Fileobj=file,
-            Bucket='S3_BUCKET',
-            Key="OBJECT_NAME",
-            ExtraArgs={'Metadata': {}}
+    # if file.filename == "":
+    #     return "Please select an image to upload"
+
+    # if file:
+    #     file.filename = secure_filename(file.filename)
+    #     output = upload_file_to_s3(file)
+    #     return str(output) ##should be url
+
+    #data = request.json
+
+# call to AWS api - get image link
+
+
+
+
+def upload_file_to_s3(file):
+
+    # with open(file, 'rb') as data:
+    #     s3.upload_fileobj(data, BUCKET_NAME, file.key)
+
+    print("inside upload helper function, rile ----> ", file)
+    try:
+        s3.upload_fileobj(
+            file,
+            BUCKET_NAME,
+            file.key,
         )
-        print('response from AWS ----------->', response)
-        #     return (response)  # should be url
-    else:
-        return 'Invalid'
+    except Exception as e:
+        # if s3 upload fails
+        return {"errors": str(e)}
 
-    # data = request.json
+    return  f"{S3_BASE_URL}{file.key}"
 
-    # call to AWS api - get image link
+
+
 
 
 # def allowed_file(filename):
@@ -110,14 +135,6 @@ def api_upload_image():
 #     if object_name is None:
 #         object_name = os.path.basename(file_name)
 
-#     # Handle upload
-#     s3_client = boto3.client('s3')
-#     try:
-#         response = s3_client.upload_file(file_name, bucket, object_name)
-#     except ClientError as error:
-#         print(error)
-#         return False
-#     return True
 
 
 ############################## Image Modification ###########################
