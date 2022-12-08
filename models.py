@@ -3,6 +3,8 @@ from PIL import Image as Pil_Image
 from urllib.request import urlopen
 import io
 from datetime import datetime
+from botocore.exceptions import ClientError
+
 
 from AWS.AWS import AWS
 import uuid
@@ -30,7 +32,7 @@ class Image(db.Model):
     __tablename__ = 'images'
 
     def __repr__(self):
-        rep = 'Image(' + str(self.id) + ',' + str(self.file_name) + ')'
+        rep = f'Image(id: {str(self.id)}, file_name: {str(self.file_name)}, bucket_name: {str(self.bucket_name)})'
         return rep
 
     id = db.Column(
@@ -72,18 +74,17 @@ class Image(db.Model):
         default=datetime.utcnow,
     )
 
-    @classmethod
+    @ classmethod
     def allowed_file(cls, filename):
-        return "." in filename and \
-            filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+        return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
-    @classmethod
+    @ classmethod
     def get_unique_key(cls, filename):
         ext = filename.rsplit(".", 1)[1].lower()
         uuid_key = uuid.uuid4().hex
         return f"{uuid_key}.{ext}"
 
-    @classmethod
+    @ classmethod
     def create(cls, file, bucket_name, title=None, description=None):
         ''' Method for adding an image.
                 Pushes image to database, and uploads to s3.
@@ -91,7 +92,7 @@ class Image(db.Model):
         '''
         file.key = Image.get_unique_key(file.filename)
         s3_image_url = AWS.upload(file, bucket_name)
-
+        # TODO: wrap in catch block, tie s3/db requests together
         image = Image(
             title=title,
             file_name=file.key,
@@ -107,29 +108,35 @@ class Image(db.Model):
         return image
 
     @classmethod
-    def update(cls, file_name, data, bucket_name):
-        ''' Method for updating an image
-                updates database, and uploads to s3. '''
-
-        image = cls.query.filter_by(file_name=file_name).first()
-        return image
-
-    @classmethod
     def fetch_binary_img(cls, file_name, bucket_name):
         ''' Call to AWS API, retrieve binary data. return binary '''
         s3_object = AWS.get_object(file_name, bucket_name)
         img_content = s3_object['Body'].ready()
         return img_content
 
+    def update(self, file):
+        ''' Method for updating an image.
+                updates database, and uploads to s3. '''
+
+        file.key = Image.get_unique_key(file.filename)
+        s3_image_url = AWS.upload(file, bucket_name)
+
+        except KeyError as e:
+            print(e)
+
     def serialize(self):
         ''' serialize self for JSON response '''
 
         return {
             "url": self.image_url,
-            "first_name": self.file_name,
+            "file_name": self.file_name,
             "title": self.title,
             "description": self.description,
-            "creation_date": self.creation_date
+            "creation_date": self.creation_date,
+            "metadata": {
+                'camera': 'nikon',
+                'location': 'san francisco'
+            }
         }
 
         ###### PILLOW METHODS ######
@@ -147,22 +154,29 @@ class Image(db.Model):
 
         # im = Image.open(io.BytesIO(buffer))
 
-    def rotate(self, degrees=45):
+    def rotate_img(self, degrees=45):
         ''' Used to rotate an image , clockwise'''
         print('rotate()-> received', self, 'degrees: ', degrees)
 
-    def bw(self):
-        ''' Used to change an image to black and white '''
-        print(' bw() -> received', self)
+        img = Pil_Image.open(urlopen(self.image_url))
+        img_rotated = img.rotate(degrees)
 
-    def sepia(self):
-        ''' Used to change an image to sepia '''
-        print('sepia() -> received', self)
+        return img_rotated.tobytes()
 
-    def add_border(self, pixels, color):
-        ''' Used to add a border to an image'''
-        print('add_border() -> received', self)
+    # def extract_metadata():
 
-    def change_size(self, height, width, lock_ratio=True):
-        ''' Used to change size of image'''
-        print('reduce_size() -> received', self)
+    # def bw(self):
+    #     ''' Used to change an image to black and white '''
+    #     print(' bw() -> received', self)
+
+    # def sepia(self):
+    #     ''' Used to change an image to sepia '''
+    #     print('sepia() -> received', self)
+
+    # def add_border(self, pixels, color):
+    #     ''' Used to add a border to an image'''
+    #     print('add_border() -> received', self)
+
+    # def change_size(self, height, width, lock_ratio=True):
+    #     ''' Used to change size of image'''
+    #     print('reduce_size() -> received', self)
