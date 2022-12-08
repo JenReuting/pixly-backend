@@ -5,7 +5,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 
 import os
 from dotenv import load_dotenv
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from AWS.AWS import AWS
 
@@ -86,27 +86,35 @@ def upload_image():
 
 ############################# Image Download ################################
 
-@ app.route('/images/<file_name>', methods=['GET'])
-def get_image_data(file_name):
-    ''' Returns image data from backend. '''
+@ app.route('/images/', methods=['GET'])
+def get_image_data():
+    ''' Returns data for a single image.
+            Params: file_name like: 'file_name.jpg'
+            Returns:
+                Image like:
+                    {url, file_name, title, description, creation_date}
+    '''
 
+    file_name = request.args.get('file_name') or None
+
+    # Return all images
     if not file_name:
-        return {'error': 'Invalid file name'}
-
-    print(
-        f' -----> BACKEND API - GET /:file_name -----> file_name: {file_name}')
-    try:
-        image = Image.get_image(file_name, BUCKET_NAME)
         print(
-            f' -----> BACKEND API - GET /:file_name ----->  image: {image}')
-    except ValueError as e:
-        print(e)
+            f' -----> BACKEND API - GET /:file_name -----> all images:')
+        images = Image.query.all()
+        serialized = [i.serialize() for i in images]
+        return jsonify(images=serialized)
 
-    return {"url": image.image_url,
-            'file_name': image.file_name,
-            'title': image.title,
-            'description': image.description,
-            'creation_date': image.creation_date}
+    # Return image by file_name
+    else:
+        print(
+            f' -----> BACKEND API - GET /:file_name -----> file_name: {file_name}')
+        image = Image.query.filter(
+            Image.file_name.like(f"%{file_name}%")).first()
+
+        serialized = image.serialize()
+        return jsonify(image=serialized)
+
 
 ##############################################################################
 # Turn off all caching in Flask

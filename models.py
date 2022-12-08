@@ -29,9 +29,9 @@ class Image(db.Model):
 
     __tablename__ = 'images'
 
-    def __new__(cls, *args, **kwargs):
-        print(f' -----> BACKEND API - SQL -----> Image added to Database')
-        return super().__new__(cls)
+    def __repr__(self):
+        rep = 'Image(' + str(self.id) + ',' + str(self.file_name) + ')'
+        return rep
 
     id = db.Column(
         db.Integer,
@@ -99,6 +99,9 @@ class Image(db.Model):
             image_url=s3_image_url,
             bucket_name=bucket_name
         )
+
+        print(f' -----> BACKEND API - SQL -----> Image added to Database')
+
         db.session.add(image)
         return image
 
@@ -111,27 +114,22 @@ class Image(db.Model):
         return image
 
     @classmethod
-    def get_all_images(cls):
-        ''' Retrieve all images from DB
-                Returns array of Images
-        '''
-        images = cls.query.all()
-        return images
-
-    @classmethod
-    def get_image(cls, file_name, bucket_name):
-        ''' Retrieve all images from DB
-                Returns array of Images
-        '''
-        image = cls.query.filter_by(file_name=file_name).first()
-        return image
-
-    @classmethod
     def fetch_binary_img(cls, file_name, bucket_name):
         ''' Call to AWS API, retrieve binary data. return binary '''
         s3_object = AWS.get_object(file_name, bucket_name)
         img_content = s3_object['Body'].ready()
         return img_content
+
+    def serialize(self):
+        ''' serialize self '''
+
+        return {
+            "url": self.image_url,
+            "first_name": self.file_name,
+            "title": self.title,
+            "description": self.description,
+            "creation_date": self.creation_date
+        }
 
     # def rotate(image, degrees=90):
     #     ''' Used to rotate an image '''
