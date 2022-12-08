@@ -103,6 +103,7 @@ def get_image_data():
             f' -----> BACKEND API - GET /:file_name -----> all images:')
         images = Image.query.all()
         serialized = [i.serialize() for i in images]
+
         return jsonify(images=serialized)
 
     # Return image by file_name
@@ -113,6 +114,7 @@ def get_image_data():
             Image.file_name.like(f"%{file_name}%")).first()
 
         serialized = image.serialize()
+
         return jsonify(image=serialized)
 
 

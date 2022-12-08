@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from PIL import Image as pil
+from PIL import Image as Pil_Image
 from urllib.request import urlopen
 import io
 from datetime import datetime
@@ -103,6 +103,7 @@ class Image(db.Model):
         print(f' -----> BACKEND API - SQL -----> Image added to Database')
 
         db.session.add(image)
+
         return image
 
     @classmethod
@@ -121,7 +122,7 @@ class Image(db.Model):
         return img_content
 
     def serialize(self):
-        ''' serialize self '''
+        ''' serialize self for JSON response '''
 
         return {
             "url": self.image_url,
@@ -131,6 +132,37 @@ class Image(db.Model):
             "creation_date": self.creation_date
         }
 
-    # def rotate(image, degrees=90):
-    #     ''' Used to rotate an image '''
-    #     print('Rotate -> received', image, 'degrees: ', degrees)
+        ###### PILLOW METHODS ######
+
+        # Reading from URL
+        # from PIL import Image as Pil_Image
+        # from urllib.request import urlopen
+
+        # url = "https://python-pillow.org/images/pillow-logo.png"
+        # img = Pil_Image.open(urlopen(url))
+
+        # Reading from binary data
+        # from PIL import Pil_Image
+        # import io
+
+        # im = Image.open(io.BytesIO(buffer))
+
+    def rotate(self, degrees=45):
+        ''' Used to rotate an image , clockwise'''
+        print('rotate()-> received', self, 'degrees: ', degrees)
+
+    def bw(self):
+        ''' Used to change an image to black and white '''
+        print(' bw() -> received', self)
+
+    def sepia(self):
+        ''' Used to change an image to sepia '''
+        print('sepia() -> received', self)
+
+    def add_border(self, pixels, color):
+        ''' Used to add a border to an image'''
+        print('add_border() -> received', self)
+
+    def change_size(self, height, width, lock_ratio=True):
+        ''' Used to change size of image'''
+        print('reduce_size() -> received', self)
