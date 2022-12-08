@@ -36,9 +36,14 @@ class Image(db.Model):
         return rep
 
     id = db.Column(
-        db.Integer,
-        primary_key=True,
-        autoincrement=True)
+        db.Text,
+        primary_key=True)
+
+    ext = db.Column(
+        db.Text,
+        nullable=False,
+        unique=False
+    )
 
     title = db.Column(
         db.Text,
@@ -79,26 +84,39 @@ class Image(db.Model):
         return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
     @ classmethod
-    def get_unique_key(cls, filename):
-        ext = filename.rsplit(".", 1)[1].lower()
+    def get_unique_key(cls):
         uuid_key = uuid.uuid4().hex
-        return f"{uuid_key}.{ext}"
+        return uuid_key
 
-    @ classmethod
+    # Extracts file type from image name and returns it
+    @classmethod
+    def get_file_type(cls, filename):
+        return "." in filename and \
+            filename.rsplit(".", 1)[1].lower()
+
+    @classmethod
     def create(cls, file, bucket_name, title=None, description=None):
         ''' Method for adding an image.
                 Pushes image to database, and uploads to s3.
                 returns image object
         '''
-        file.key = Image.get_unique_key(file.filename)
-        s3_image_url = AWS.upload(file, bucket_name)
-        # TODO: wrap in catch block, tie s3/db requests together
+        # file_type = Image.get_file_type(file.filename)
+        id = Image.get_unique_key()
+        ext = Image.get_file_type(file.filename)
+
+        file_name = f'{id}.{ext}'
+
+        # extension = Image.get_file_type
+        s3_image_url = AWS.upload(
+            file, bucket_name, key=file_name, extension=ext)
         image = Image(
+            id=id,
+            ext=ext,
             title=title,
-            file_name=file.key,
-            description=description,
+            file_name=file_name,
             image_url=s3_image_url,
-            bucket_name=bucket_name
+            bucket_name=bucket_name,
+            description=description,
         )
 
         print(f' -----> BACKEND API - SQL -----> Image added to Database')
@@ -114,15 +132,15 @@ class Image(db.Model):
         img_content = s3_object['Body'].ready()
         return img_content
 
-    def update(self, file):
-        ''' Method for updating an image.
-                updates database, and uploads to s3. '''
+    # def update(self, file):
+    #     ''' Method for updating image content.
 
-        file.key = Image.get_unique_key(file.filename)
-        s3_image_url = AWS.upload(file, bucket_name)
+    #     Accepts a file, uploads it to S3 under same key.
+    #     Returns Image
+    #     '''
 
-        except KeyError as e:
-            print(e)
+    #     file.key = self.file_name
+    #     # s3_image_url = AWS.upload(file, bucket_name)
 
     def serialize(self):
         ''' serialize self for JSON response '''
@@ -130,6 +148,8 @@ class Image(db.Model):
         return {
             "url": self.image_url,
             "file_name": self.file_name,
+            "ext": self.ext,
+            "id": self.id,
             "title": self.title,
             "description": self.description,
             "creation_date": self.creation_date,
@@ -158,10 +178,18 @@ class Image(db.Model):
         ''' Used to rotate an image , clockwise'''
         print('rotate()-> received', self, 'degrees: ', degrees)
 
-        img = Pil_Image.open(urlopen(self.image_url))
-        img_rotated = img.rotate(degrees)
-
+        img_pil = Pil_Image.open(urlopen(self.image_url))
+        img_rotated = img_pil.rotate(degrees)
         return img_rotated.tobytes()
+
+    def package(self):
+        pil_image = Pil_Image.open(urlopen(self.image_url))
+
+        in_mem_file = io.BytesIO()
+        pil_image.save(in_mem_file, format=pil_image.format)
+        in_mem_file.seek(0)
+
+        return in_mem_file
 
     # def extract_metadata():
 

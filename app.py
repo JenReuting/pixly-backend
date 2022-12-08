@@ -56,9 +56,9 @@ def upload_image():
     """
 
     file = request.files.get('image') or None
+    print(file)
     title = request.form.get('title') or None
     description = request.form.get('description') or None
-
     print(
         f' -----> BACKEND API - POST /upload -----> file: {file} title: {title} description: {description}')
 
