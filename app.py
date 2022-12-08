@@ -6,9 +6,11 @@ from flask_debugtoolbar import DebugToolbarExtension
 import os
 from dotenv import load_dotenv
 from flask import Flask, request
+from flask_cors import CORS
 from AWS import AWS
 
 app = Flask(__name__)
+CORS(app)
 
 # toolbar = DebugToolbarExtension(app)
 
