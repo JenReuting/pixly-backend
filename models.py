@@ -4,7 +4,7 @@ from urllib.request import urlopen
 import io
 from datetime import datetime
 
-from AWS import AWS
+from AWS.AWS import AWS
 import uuid
 
 db = SQLAlchemy()
@@ -30,7 +30,7 @@ class Image(db.Model):
     __tablename__ = 'images'
 
     def __new__(cls, *args, **kwargs):
-        print("1. Create a new instance of Image.")
+        print(f' -----> BACKEND API - SQL -----> Image added to Database')
         return super().__new__(cls)
 
     id = db.Column(
@@ -118,7 +118,16 @@ class Image(db.Model):
         images = cls.query.all()
         return images
 
-    def get_binary_img(file_name, bucket_name):
+    @classmethod
+    def get_image(cls, file_name, bucket_name):
+        ''' Retrieve all images from DB
+                Returns array of Images
+        '''
+        image = cls.query.filter_by(file_name=file_name).first()
+        return image
+
+    @classmethod
+    def fetch_binary_img(cls, file_name, bucket_name):
         ''' Call to AWS API, retrieve binary data. return binary '''
         s3_object = AWS.get_object(file_name, bucket_name)
         img_content = s3_object['Body'].ready()
