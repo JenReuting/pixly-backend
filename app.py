@@ -39,31 +39,49 @@ app.config['S3_SECRET'] = os.environ["AWS_ACCESS_SECRET"]
 BUCKET_NAME = os.environ["AWS_BUCKET_NAME"]
 
 
-
-
 ############################# Image Upload ################################
 
 @app.route('/upload', methods=["POST"])
 def upload_image():
     """ Handle image upload. Adds image and returns data about new image.
     """
-    file = request.files['image']
-    print('image from route', file)
 
-    # NOTE: request.form gives us the other data in the multipart request (ex: request.form['filename'])
+    file = request.files.get('image') or None
+    title = request.form.get('title') or None
+    description = request.form.get('description') or None
+
+    print(
+        f' -----> BACKEND API - POST /upload received: file: {file} title: {title} description: {description}')
+
+    if not file:
+        return {'error': 'Provide a valid image'}
 
     try:
-        image = Image.create(file, BUCKET_NAME)
+        image = Image.create(file, BUCKET_NAME, title, description)
         print('Successfully created image', image)
     except ValueError as e:
         print(e)
 
     db.session.commit()
-    print("image from upload image -----> ", image.image_url)
-    print("image from upload imag, file_name -----> ", image.file_name)
-    print("image from upload image ----->,  title", image.title)
-    return {"url": image.image_url}
+
+    return {"url": image.image_url,
+            'file_name': image.file_name,
+            'title': image.title,
+            'description': image.description,
+            'creation_date': image.creation_date}
 
 
+##############################################################################
+# Turn off all caching in Flask
+#   (useful for dev; in production, this kind of stuff is typically
+#   handled elsewhere)
+#
+# https://stackoverflow.com/questions/34066804/disabling-caching-in-flask
 
-############################## Image Modification ###########################
+@ app.after_request
+def add_header(response):
+    """Add non-caching headers on every request."""
+
+    # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
+    response.cache_control.no_store = True
+    return response

@@ -1,4 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
+from PIL import Image as pil
+from urllib.request import urlopen
+import io
 from datetime import datetime
 
 from AWS import AWS
@@ -26,6 +29,10 @@ class Image(db.Model):
 
     __tablename__ = 'images'
 
+    def __new__(cls, *args, **kwargs):
+        print("1. Create a new instance of Image.")
+        return super().__new__(cls)
+
     id = db.Column(
         db.Integer,
         primary_key=True,
@@ -39,12 +46,30 @@ class Image(db.Model):
     file_name = db.Column(
         db.Text,
         nullable=False,
-        unique=False
+        unique=True
     )
 
     image_url = db.Column(
         db.Text,
         default=DEFAULT_IMAGE_URL,
+    )
+
+    bucket_name = db.Column(
+        db.Text,
+        nullable=False,
+        unique=False
+    )
+
+    description = db.Column(
+        db.Text,
+        nullable=True,
+        unique=False
+    )
+
+    creation_date = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
     )
 
     @classmethod
@@ -59,7 +84,7 @@ class Image(db.Model):
         return f"{uuid_key}.{ext}"
 
     @classmethod
-    def create(cls, file, bucket_name, title=None):
+    def create(cls, file, bucket_name, title=None, description=None):
         ''' Method for adding an image.
                 Pushes image to database, and uploads to s3.
                 returns image object
@@ -70,11 +95,10 @@ class Image(db.Model):
         image = Image(
             title=title,
             file_name=file.key,
-            image_url=s3_image_url
+            description=description,
+            image_url=s3_image_url,
+            bucket_name=bucket_name
         )
-        print(image)
-        print(s3_image_url)
-
         db.session.add(image)
         return image
 
@@ -92,5 +116,14 @@ class Image(db.Model):
                 Returns array of Images
         '''
         images = cls.query.all()
-
         return images
+
+    def get_binary_img(file_name, bucket_name):
+        ''' Call to AWS API, retrieve binary data. return binary '''
+        s3_object = AWS.get_object(file_name, bucket_name)
+        img_content = s3_object['Body'].ready()
+        return img_content
+
+    # def rotate(image, degrees=90):
+    #     ''' Used to rotate an image '''
+    #     print('Rotate -> received', image, 'degrees: ', degrees)

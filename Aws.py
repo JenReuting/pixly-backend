@@ -18,6 +18,13 @@ class AWS:
     ''' Interact with AWS API '''
 
     @classmethod
+    def get_object(self, file_name, bucket_name):
+        print('AWS -> get_object', file_name, bucket_name)
+        s3_response_object = s3_client.get_object(
+            Bucket=bucket_name, Key=file_name)
+        return s3_response_object
+
+    @classmethod
     def create_bucket(self, bucket_name, region='us-west-1'):
         '''' Create a new bucket on S3
 
@@ -102,10 +109,6 @@ class AWS:
             Returns:
                 True if successful upload, else False
         '''
-
-        print(" -----> file from AWS class: ", file)
-        print(" -----> bucket_name: ", bucket_name)
-        print(" -----> key: ", file.key)
 
         try:
             s3_client.upload_fileobj(
