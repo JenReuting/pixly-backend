@@ -1,6 +1,7 @@
 CREATE TABLE images (
-    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id TEXT PRIMARY KEY,
     file_name TEXT NOT NULL,
+    ext VARCHAR(5) NOT NULL,
     title VARCHAR(25),
     image_url TEXT NOT NULL,
     bucket_name VARCHAR(25) NOT NULL,
