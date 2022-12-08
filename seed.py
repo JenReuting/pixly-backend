@@ -10,7 +10,6 @@ import generator.create_csvs as create_csvs
 # db.drop_all()
 # db.create_all()
 
-open
 
 with open('generator/images.csv') as images:
     db.session.bulk_insert_mappings(Image, DictReader(images))
