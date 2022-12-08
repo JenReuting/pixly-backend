@@ -61,8 +61,8 @@ class Image(db.Model):
     @classmethod
     def create(cls, file, bucket_name, title=None):
         ''' Method for adding an image.
-        Pushes image to database, and uploads to s3.
-        returns image object
+                Pushes image to database, and uploads to s3.
+                returns image object
         '''
         file.key = Image.get_unique_key(file.filename)
         s3_image_url = AWS.upload(file, bucket_name)
@@ -79,10 +79,18 @@ class Image(db.Model):
         return image
 
     @classmethod
-    def update(cls, file_name):
-        ''' Method for updating an image file.
-        Updates database metadata, and uploads to S3.
-        '''
+    def update(cls, file_name, data, bucket_name):
+        ''' Method for updating an image
+                updates database, and uploads to s3. '''
 
         image = cls.query.filter_by(file_name=file_name).first()
-        print(image)
+        return image
+
+    @classmethod
+    def get_all_images(cls):
+        ''' Retrieve all images from DB
+                Returns array of Images
+        '''
+        images = cls.query.all()
+
+        return images
