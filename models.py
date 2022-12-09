@@ -123,14 +123,14 @@ class Image(db.Model):
                 description=description,
             )
 
-            # parse metadata, add to db TODO: fix - file IO issues
-            # md = cls.fetch_metadata(file)
-            # for k, v in md:
-            #     metadata = Img_Metadata(
-            #         tag_name=k,
-            #         value=v
-            #     )
-            #     image.img_metadata.append(metadata)
+            # parse metadata, add to db FIXME: fix - file IO issues
+            md = cls.fetch_metadata(file)
+            for k, v in md:
+                metadata = Img_Metadata(
+                    tag_name=k,
+                    value=v
+                )
+                image.img_metadata.append(metadata)
 
         except TypeError as error:
             print(error)
@@ -138,6 +138,7 @@ class Image(db.Model):
 
         # After adding to DB, upload to AWS S3
         try:
+            file.seek(0)
             AWS.upload(file, bucket_name, file_name, ext=ext)
         except ValueError as error:
             print(error)
@@ -160,7 +161,7 @@ class Image(db.Model):
         ''' Method for updating image content.
 
         Accepts a file, uploads it to S3 under same key.
-        Returns Image
+        Returns True / False
         TODO:
         '''
 
@@ -197,6 +198,8 @@ class Image(db.Model):
                 tagname = TAGS.get(tagid, tagid)
                 value = str(exifdata.get(tagid))
                 meta.append((tagname, value))
+            pil_img.seek(0)
+
         return meta
 
     def serialize(self):
