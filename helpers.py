@@ -1,9 +1,4 @@
 from PIL import Image, ImageDraw
-'''
-
-'''
-
-# Imported PIL Library
 
 
 # Open an Image

@@ -157,9 +157,9 @@ def update_image(id):
             if ('rotate' in action):
                 print('yes')
                 updated = pil_img.rotate(90)
-            if ('bw' in action):
+            elif ('bw' in action):
                 updated = pil_img.convert('L')
-            if ('sepia' in action and 'bw' not in action):
+            elif ('sepia' in action):
                 updated = helpers.convert_sepia(pil_img)
 
             image.update(pil_img, updated)
