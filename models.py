@@ -164,6 +164,8 @@ class Image(db.Model):
         Returns True / False
         TODO:
         '''
+        # pil_img.show()
+        # updated_img.show()
 
         try:
             in_mem_file = io.BytesIO()
@@ -176,6 +178,7 @@ class Image(db.Model):
             return {"errors": str(error)}
 
         try:
+            'AWS UPLOAD'
             AWS.upload(in_mem_file, self.bucket_name,
                        file_name=self.file_name,
                        ext=self.ext)

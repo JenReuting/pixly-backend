@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 # from AWS.AWS import AWS
+import helpers
+import copy
+
 
 app = Flask(__name__)
 CORS(app)
@@ -133,24 +136,29 @@ def get_image(id):
 def update_image(id):
     ''' TODO: Handles updates to a specific image.
         Params:
-            file_name like: 'file_name.jpg'
             changes: 'rotate', 'bw', 'sepia'
         Returns:
                 Image like:
                     {url, file_name, title, description, creation_date}
     '''
-
-    # action = request.args.get('rotate') or None
+    image = Image.query.get_or_404(id)
+    action = request.args.get('changes') or None
 
     print(
         f' -----> BACKEND API - GET /:file_name -----> id: {id}')
+
     try:
-        image = Image.query.get_or_404(id)
         pil_img = image.fetch_from_url()
 
-        rotated = pil_img.rotate(90)
+        if ('rotate' in action):
+            print('yes')
+            updated = pil_img.rotate(90)
+        if ('bw' in action):
+            updated = pil_img.convert('L')
+        if ('sepia' in action and 'bw' not in action):
+            updated = helpers.convert_sepia(pil_img)
 
-        image.update(pil_img, rotated)
+        image.update(pil_img, updated)
         serialized = image.serialize()
 
     except ValueError as error:
