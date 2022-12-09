@@ -221,6 +221,8 @@ class Image(db.Model):
         TODO:'''
         print('serializing response')
 
+        # unpack Metadata object to parseable
+        md = {md.tag_name: md.value for md in self.img_metadata}
         return {
             "url": self.image_url,
             "file_name": self.file_name,
@@ -229,7 +231,7 @@ class Image(db.Model):
             "title": self.title,
             "description": self.description,
             "creation_date": self.creation_date,
-            "metadata": 'not available yet'
+            "metadata": md
         }
 
 ################################ PILLOW METHODS ###############################
@@ -298,5 +300,5 @@ class Img_Metadata(db.Model):
         nullable=False,
     )
 
-    def __repr__(self):
-        return f"<Metadata #{self.id}: Tag Name {self.tag_name} Value {self.value} Image {self.file_id}>"
+    # def __repr__(self):
+    #     return f"<Metadata #{self.id}: Tag Name {self.tag_name} Value {self.value} Image {self.file_id}>"

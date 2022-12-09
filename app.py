@@ -7,7 +7,7 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from AWS.AWS import AWS
+# from AWS.AWS import AWS
 
 app = Flask(__name__)
 CORS(app)
@@ -169,6 +169,7 @@ def delete_image(id):
                 Returns 'Image: {id} deleted' on success, else throws error if not found.
 '''
     image = Image.query.get_or_404(id)
+
     try:
         Image.delete_image(image)
     except ValueError as e:
