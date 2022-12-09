@@ -97,7 +97,7 @@ class AWS:
             return False
 
     @classmethod
-    def upload(self, file, bucket_name, file_name, extension):
+    def upload(self, file, bucket_name, file_name, ext):
         '''
         Uploads a file to S3 bucket.
 
@@ -110,9 +110,10 @@ class AWS:
                 True if successful upload, else False
         '''
 
-        print('key from AWS', file_name)
-
-        content_type = f"image/{extension}"
+        print('AWS file ----> ', file)
+        print('AWS key ----> ', file_name)
+        print('AWS bucket_name ----> ', bucket_name)
+        print('AWS extension ----> ', ext)
 
         try:
             s3_client.upload_fileobj(
@@ -120,11 +121,11 @@ class AWS:
                 bucket_name,
                 file_name,
                 ExtraArgs={
-                    'ContentType': content_type
+                    'ContentType': 'image/jpeg'
                 }
             )
-            return True
             print(f' -----> BACKEND API - AWS S3 -----> Image uploaded')
+            return True
 
         except ClientError as error:
             print(error)

@@ -112,12 +112,11 @@ class Image(db.Model):
         ext = Image.get_file_type(file.filename)
         file_name = f'{id}.{ext}'
         image_url = AWS.object_url(bucket_name, file_name)
-        meta = Image.fetch_metadata(file)
-        print(meta)
+        # meta_data = Image.fetch_metadata(file)
 
         # Add Image to DB
         try:
-            image = Image(
+            image: Image = Image(
                 id=id,
                 ext=ext,
                 title=title,
@@ -127,29 +126,27 @@ class Image(db.Model):
                 description=description,
             )
 
-        except TypeError as e:
-            print(e)
+            # parse metadata, add to db
+            md = cls.fetch_metadata(file)
+            for k, v in md:
+                metadata = Img_Metadata(
+                    tag_name=k,
+                    value=v
+                )
+                image.img_metadata.append(metadata)
 
+        except TypeError as error:
+            print(error)
+            return {"errors": str(error)}
+
+        # Add image to AWS S3
         try:
-            for data in meta:
-                img_metadata = Img_Metadata(
-                    file_id=id,
-                    tag_name=data,
-                    value=meta[data])
-                db.session.add(img_metadata)
+            AWS.upload(file, bucket_name, file_name, ext=ext)
+        except ValueError as error:
+            print(error)
+            return {"errors": str(error)}
 
-                print(img_metadata)
-
-        except ValueError as e:
-            print(e)
-
-            # Add image to AWS S3
-        try:
-            AWS.upload(file, bucket_name, file_name=file_name, extension=ext)
-        except ValueError as e:
-            print(e)
-
-        db.session.add(image, meta)
+        db.session.add(image)
 
         print(f' -----> BACKEND API - SQL -----> Image added to Database')
         return id
@@ -172,18 +169,25 @@ class Image(db.Model):
             in_mem_file = io.BytesIO()
             updated_img.save(in_mem_file, format=pil_img.format)
             in_mem_file.seek(0)
-        except BufferError as e:
-            print(e)
+            print(in_mem_file)
+
+        except BufferError as error:
+            print(error)
+            return {"errors": str(error)}
+
         try:
             AWS.upload(in_mem_file, self.bucket_name,
                        file_name=self.file_name,
-                       extension=self.ext)
-        except ValueError as e:
-            print(e)
+                       ext=self.ext)
+        except ValueError as error:
+            print(error)
+            return {"errors": str(error)}
+
+        return True
 
     def serialize(self):
         ''' serialize self for JSON response '''
-        # print(self.img_metadata)
+        print('serializing response')
 
         return {
             "url": self.image_url,
@@ -215,6 +219,7 @@ class Image(db.Model):
 
     def fetch_from_url(self):
         ''' Fetch image content from AWS '''
+        print(self.image_url)
         pil_image = PIL.open(urlopen(self.image_url))
         return pil_image
 
@@ -226,20 +231,18 @@ class Image(db.Model):
         try:
             pil_img = PIL.open(file)
             exifdata = pil_img.getexif()
-        except ValueError as e:
-            print(e)
+        except ValueError as error:
+            print(error)
+            return {"errors": str(error)}
 
-        meta = dict()
+        meta = []
 
         for tagid in exifdata:
             tagname = TAGS.get(tagid, tagid)
             value = str(exifdata.get(tagid))
-            meta.update([(tagname, value)])
+            meta.append((tagname, value))
 
         return meta
-
-    # def fetch_metadata(self):
-    #     ''' Extract metadata of an image. '''
 
     #     pil_img = self.fetch_from_url()
     #     exifdata = pil_img.getexif()
@@ -271,7 +274,7 @@ class Image(db.Model):
 
 
 class Img_Metadata(db.Model):
-    """A piece of metadata for an image"""
+    """A piece of image metadata"""
 
     __tablename__ = 'img_metadata'
 

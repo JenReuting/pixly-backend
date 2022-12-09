@@ -26,7 +26,7 @@ app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
 connect_db(app)
 
 
-toolbar = DebugToolbarExtension(app)
+# toolbar = DebugToolbarExtension(app)
 
 
 ############ AWS IMPORT CONFIG ###########################
@@ -56,8 +56,6 @@ def upload_image():
     """
 
     file = request.files.get('image') or None
-    # meta = Image.fetch_metadata(file)
-
     title = request.form.get('title') or None
     description = request.form.get('description') or None
 
@@ -129,12 +127,6 @@ def get_image(id):
     return jsonify(image=serialized)
 
 
-# patch > /images param: file_name
-
-    # body:
-    #     number: version number
-    #     change: string
-
 @app.route('/images/<id>', methods=['PATCH'])
 def update_image(id):
     ''' Handles updates to a specific image.
@@ -153,16 +145,15 @@ def update_image(id):
     try:
         image: Image = Image.query.filter(
             Image.id.like(f"%{id}%")).first()
-
         pil_img = image.fetch_from_url()
         rotated = pil_img.rotate(90)
         image.update(pil_img, rotated)
+        serialized = image.serialize()
 
-    except ValueError as e:
-        print(e)
-
-    else:
-        return 'Provide a valid file_name '
+    except ValueError as error:
+        print(error)
+        return {"errors": str(error)}
+        return False
 
     return jsonify(image=serialized)
 
