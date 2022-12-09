@@ -4,8 +4,8 @@ from csv import DictReader
 from app import db
 from models import Image
 
-import generator.create_csvs as create_csvs
-
+# import generator.create_csvs as create_csvs
+# create_csvs()
 
 db.drop_all()
 db.create_all()

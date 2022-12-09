@@ -1,5 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
-from PIL import Image as Pil_Image
+from PIL import Image as PIL
+from PIL.ExifTags import TAGS
+
+
 from urllib.request import urlopen
 import io
 from datetime import datetime
@@ -79,6 +82,8 @@ class Image(db.Model):
         default=datetime.utcnow,
     )
 
+    img_metadata = db.relationship('Img_Metadata', backref="image")
+
     @ classmethod
     def allowed_file(cls, filename):
         ''' '''
@@ -107,6 +112,8 @@ class Image(db.Model):
         ext = Image.get_file_type(file.filename)
         file_name = f'{id}.{ext}'
         image_url = AWS.object_url(bucket_name, file_name)
+        meta = Image.fetch_metadata(file)
+        print(meta)
 
         # Add Image to DB
         try:
@@ -119,7 +126,21 @@ class Image(db.Model):
                 bucket_name=bucket_name,
                 description=description,
             )
+
         except TypeError as e:
+            print(e)
+
+        try:
+            for data in meta:
+                img_metadata = Img_Metadata(
+                    file_id=id,
+                    tag_name=data,
+                    value=meta[data])
+                db.session.add(img_metadata)
+
+                print(img_metadata)
+
+        except ValueError as e:
             print(e)
 
             # Add image to AWS S3
@@ -128,12 +149,12 @@ class Image(db.Model):
         except ValueError as e:
             print(e)
 
-        db.session.add(image)
+        db.session.add(image, meta)
 
         print(f' -----> BACKEND API - SQL -----> Image added to Database')
-        return image
+        return id
 
-    @classmethod
+    @ classmethod
     def fetch_binary_img(cls, file_name, bucket_name):
         ''' Call to AWS API, retrieve binary data. return binary '''
         s3_object = AWS.get_object(file_name, bucket_name)
@@ -153,7 +174,6 @@ class Image(db.Model):
             in_mem_file.seek(0)
         except BufferError as e:
             print(e)
-
         try:
             AWS.upload(in_mem_file, self.bucket_name,
                        file_name=self.file_name,
@@ -163,6 +183,7 @@ class Image(db.Model):
 
     def serialize(self):
         ''' serialize self for JSON response '''
+        # print(self.img_metadata)
 
         return {
             "url": self.image_url,
@@ -172,20 +193,17 @@ class Image(db.Model):
             "title": self.title,
             "description": self.description,
             "creation_date": self.creation_date,
-            "metadata": {
-                'camera': 'nikon',
-                'location': 'san francisco'
-            }
+            "metadata": 'not available yet'
         }
 
         ###### PILLOW METHODS ######
 
         # Reading from URL
-        # from PIL import Image as Pil_Image
+        # from PIL import Image as PIL
         # from urllib.request import urlopen
 
         # url = "https://python-pillow.org/images/pillow-logo.png"
-        # img = Pil_Image.open(urlopen(url))
+        # img = PIL.open(urlopen(url))
 
         # Reading from binary data
         # from PIL import Pil_Image
@@ -197,23 +215,85 @@ class Image(db.Model):
 
     def fetch_from_url(self):
         ''' Fetch image content from AWS '''
-        pil_image = Pil_Image.open(urlopen(self.image_url))
+        pil_image = PIL.open(urlopen(self.image_url))
         return pil_image
 
-    # def extract_metadata():
+    @ classmethod
+    def fetch_metadata(cls, file):
+        ''' Extract metadata of an image from request '''
+        breakpoint
 
-    # def bw(self):
-    #     ''' Used to change an image to black and white '''
-    #     print(' bw() -> received', self)
+        try:
+            pil_img = PIL.open(file)
+            exifdata = pil_img.getexif()
+        except ValueError as e:
+            print(e)
 
-    # def sepia(self):
-    #     ''' Used to change an image to sepia '''
-    #     print('sepia() -> received', self)
+        meta = dict()
 
-    # def add_border(self, pixels, color):
-    #     ''' Used to add a border to an image'''
-    #     print('add_border() -> received', self)
+        for tagid in exifdata:
+            tagname = TAGS.get(tagid, tagid)
+            value = str(exifdata.get(tagid))
+            meta.update([(tagname, value)])
 
-    # def change_size(self, height, width, lock_ratio=True):
-    #     ''' Used to change size of image'''
-    #     print('reduce_size() -> received', self)
+        return meta
+
+    # def fetch_metadata(self):
+    #     ''' Extract metadata of an image. '''
+
+    #     pil_img = self.fetch_from_url()
+    #     exifdata = pil_img.getexif()
+
+    #     for tagid in exifdata:
+    #         tagname = TAGS.get(tagid, tagid)
+
+    #     # passing the tagid to get its respective value
+    #         value = exifdata.get(tagid)
+
+    #     # printing the final result
+    #         print(f"{tagname:25}: {value}")
+
+        # def bw(self):
+        #     ''' Used to change an image to black and white '''
+        #     print(' bw() -> received', self)
+
+        # def sepia(self):
+        #     ''' Used to change an image to sepia '''
+        #     print('sepia() -> received', self)
+
+        # def add_border(self, pixels, color):
+        #     ''' Used to add a border to an image'''
+        #     print('add_border() -> received', self)
+
+        # def change_size(self, height, width, lock_ratio=True):
+        #     ''' Used to change size of image'''
+        #     print('reduce_size() -> received', self)
+
+
+class Img_Metadata(db.Model):
+    """A piece of metadata for an image"""
+
+    __tablename__ = 'img_metadata'
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True,
+    )
+
+    tag_name = db.Column(
+        db.String(50),
+        nullable=False,
+    )
+    value = db.Column(
+        db.String(200),
+        nullable=False,
+    )
+
+    file_id = db.Column(
+        db.Text,
+        db.ForeignKey('images.id', ondelete='CASCADE'),
+        nullable=False,
+    )
+
+    def __repr__(self):
+        return f"<Metadata #{self.id}: Tag Name {self.tag_name} Value {self.value} Image {self.file_id}>"

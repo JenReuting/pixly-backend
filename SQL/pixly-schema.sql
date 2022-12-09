@@ -9,3 +9,8 @@ CREATE TABLE images (
     creation_date TIMESTAMP NOT NULL
 );
 
+
+CREATE TABLE metadata (
+    id INTEGER PRIMARY KEY AUTO
+)
+

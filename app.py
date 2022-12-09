@@ -56,9 +56,11 @@ def upload_image():
     """
 
     file = request.files.get('image') or None
-    print(file)
+    # meta = Image.fetch_metadata(file)
+
     title = request.form.get('title') or None
     description = request.form.get('description') or None
+
     print(
         f' -----> BACKEND API - POST /upload -----> file: {file} title: {title} description: {description}')
 
@@ -66,7 +68,9 @@ def upload_image():
         return {'error': 'Provide a valid image'}
 
     try:
-        image = Image.create(file, BUCKET_NAME, title, description)
+        id = Image.create(file, BUCKET_NAME, title, description)
+        image = Image.query.filter(
+            Image.id.like(f"%{id}%")).first()
         serialized = image.serialize()
 
     except ValueError as e:
@@ -83,7 +87,26 @@ def upload_image():
 ############################# Image Download ################################
 
 @ app.route('/images/', methods=['GET'])
-def get_image_data():
+def get_all_images():
+    ''' Returns data for ALL images.
+            Params:
+                limit: number of items to return, (indexes)
+            Returns:
+                {Images:
+                    [{id, ext, url, file_name, title, description, creation_date}...]
+    '''
+    try:
+        images = Image.query.all()  # add limit, return
+    except ValueError as e:
+        print(e)
+
+    serialized = [i.serialize() for i in images]
+
+    return jsonify(images=serialized)
+
+
+@ app.route('/images/<id>', methods=['GET'])
+def get_image(id):
     ''' Returns data for a single image.
             Params:
                 file_name like: 'file_name.jpg'
@@ -94,27 +117,16 @@ def get_image_data():
                     {url, file_name, title, description, creation_date}
     '''
 
-    file_name = request.args.get('file_name') or None
-
-    # Return *all* images
-    if not file_name:
-        print(
-            f' -----> BACKEND API - GET /:file_name -----> all images:')
-        images = Image.query.all()  # add limit, return
-        serialized = [i.serialize() for i in images]
-
-        return jsonify(images=serialized)
-
-    # Return image by file_name
-    else:
-        print(
-            f' -----> BACKEND API - GET /:file_name -----> file_name: {file_name}')
+    print(
+        f' -----> BACKEND API - GET /:file_name -----> id: {id}')
+    try:
         image = Image.query.filter(
-            Image.file_name.like(f"%{file_name}%")).first()
+            Image.id.like(f"%{id}%")).first()
+    except ValueError as e:
+        print(e)
 
-        serialized = image.serialize()
-
-        return jsonify(image=serialized)
+    serialized = image.serialize()
+    return jsonify(image=serialized)
 
 
 # patch > /images param: file_name
@@ -123,8 +135,8 @@ def get_image_data():
     #     number: version number
     #     change: string
 
-@app.route('/images', methods=['PATCH'])
-def update_image():
+@app.route('/images/<id>', methods=['PATCH'])
+def update_image(id):
     ''' Handles updates to a specific image.
         Params:
             file_name like: 'file_name.jpg'
@@ -134,24 +146,20 @@ def update_image():
                     {url, file_name, title, description, creation_date}
     '''
 
-    file_name = request.args.get('file_name') or None
+    # action = request.args.get('rotate') or None
 
-    if file_name:
-        try:
-            image = Image.query.filter(
-                Image.file_name.like(f"%{file_name}%")).first()
+    print(
+        f' -----> BACKEND API - GET /:file_name -----> id: {id}')
+    try:
+        image: Image = Image.query.filter(
+            Image.id.like(f"%{id}%")).first()
 
-            # Call method on image
-            # rotated = image.rotate()
-            # image.update(rotated)
-            # serialize
-            # return image
+        pil_img = image.fetch_from_url()
+        rotated = pil_img.rotate(90)
+        image.update(pil_img, rotated)
 
-            serialized = image.serialize()
-
-        except ValueError as e:
-            print(e)
-            return e
+    except ValueError as e:
+        print(e)
 
     else:
         return 'Provide a valid file_name '
@@ -166,7 +174,7 @@ def update_image():
     # https://stackoverflow.com/questions/34066804/disabling-caching-in-flask
 
 
-@app.after_request
+@ app.after_request
 def add_header(response):
     """Add non-caching headers on every request."""
 
