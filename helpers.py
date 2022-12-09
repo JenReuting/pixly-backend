@@ -1,9 +1,6 @@
 from PIL import Image, ImageDraw
 '''
-    This Example opens an Image and transform the image using Pointilize.
-    We also use a sepia filter as an optional step.
-    You need PILLOW (Python Imaging Library fork) and Python 3.5
-    -Isai B. Cicourel
+
 '''
 
 # Imported PIL Library

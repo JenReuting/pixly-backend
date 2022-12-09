@@ -142,28 +142,32 @@ def update_image(id):
                     {url, file_name, title, description, creation_date}
     '''
     image = Image.query.get_or_404(id)
-    action = request.args.get('changes') or None
+    request_json = request.get_json()
+    action = request_json.get('changes') or None
+    # action = request.args.get('changes') or None
 
-    print(
-        f' -----> BACKEND API - GET /:file_name -----> id: {id}')
+    if action:
 
-    try:
-        pil_img = image.fetch_from_url()
+        print(
+            f' -----> BACKEND API - GET /:file_name -----> id: {id}')
 
-        if ('rotate' in action):
-            print('yes')
-            updated = pil_img.rotate(90)
-        if ('bw' in action):
-            updated = pil_img.convert('L')
-        if ('sepia' in action and 'bw' not in action):
-            updated = helpers.convert_sepia(pil_img)
+        try:
+            pil_img = image.fetch_from_url()
 
-        image.update(pil_img, updated)
-        serialized = image.serialize()
+            if ('rotate' in action):
+                print('yes')
+                updated = pil_img.rotate(90)
+            if ('bw' in action):
+                updated = pil_img.convert('L')
+            if ('sepia' in action and 'bw' not in action):
+                updated = helpers.convert_sepia(pil_img)
 
-    except ValueError as error:
-        print(error)
-        return {"errors": str(error)}
+            image.update(pil_img, updated)
+            serialized = image.serialize()
+
+        except ValueError as error:
+            print(error)
+            return {"errors": str(error)}
 
     return jsonify(image=serialized)
 
