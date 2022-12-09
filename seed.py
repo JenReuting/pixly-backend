@@ -7,8 +7,8 @@ from models import Image
 import generator.create_csvs as create_csvs
 
 
-# db.drop_all()
-# db.create_all()
+db.drop_all()
+db.create_all()
 
 
 with open('generator/images.csv') as images:
