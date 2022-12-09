@@ -7,7 +7,7 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-# from AWS.AWS import AWS
+from AWS.AWS import AWS
 
 app = Flask(__name__)
 CORS(app)
@@ -67,8 +67,7 @@ def upload_image():
 
     try:
         id = Image.create(file, BUCKET_NAME, title, description)
-        image = Image.query.filter(
-            Image.id.like(f"%{id}%")).first()
+        image = Image.query.get_or_404(id)
         serialized = image.serialize()
 
     except ValueError as e:
@@ -118,8 +117,8 @@ def get_image(id):
     print(
         f' -----> BACKEND API - GET /:file_name -----> id: {id}')
     try:
-        image = Image.query.filter(
-            Image.id.like(f"%{id}%")).first()
+        image = Image.query.get_or_404(id)
+
     except ValueError as e:
         print(e)
 
@@ -146,9 +145,7 @@ def update_image(id):
     print(
         f' -----> BACKEND API - GET /:file_name -----> id: {id}')
     try:
-        image: Image = Image.query.filter(
-            Image.id.like(f"%{id}%")).first()
-
+        image = Image.query.get_or_404(id)
         pil_img = image.fetch_from_url()
 
         rotated = pil_img.rotate(90)
@@ -161,6 +158,25 @@ def update_image(id):
         return {"errors": str(error)}
 
     return jsonify(image=serialized)
+
+
+@app.route('/images/<id>', methods=['DELETE'])
+def delete_image(id):
+    ''' TODO: Deletes an image from the database.
+        Params:
+            id: image id like : 359u50305831058
+        Returns:
+                Returns 'Image: {id} deleted' on success, else throws error if not found.
+'''
+    image = Image.query.get_or_404(id)
+    try:
+        Image.delete_image(image)
+    except ValueError as e:
+        print(e)
+
+    db.session.commit()
+
+    return jsonify(f'Image: {id} deleted')
 
     ##############################################################################
     # Turn off all caching in Flask

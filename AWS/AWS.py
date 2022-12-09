@@ -17,14 +17,19 @@ class AWS:
     ''' Interact with AWS API '''
 
     @classmethod
-    def get_object(self, file_name, bucket_name):
+    def get_object(cls, file_name, bucket_name):
         print('AWS -> get_object', file_name, bucket_name)
-        s3_response_object = s3_client.get_object(
-            Bucket=bucket_name, Key=file_name)
-        return s3_response_object
+        return s3_client.delete_object(Bucket=bucket_name, Key=file_name)
 
     @classmethod
-    def create_bucket(self, bucket_name, region='us-west-1'):
+    def delete_object(cls, image, version_id=None):
+        ''' Delete an object from S3 '''
+        response = s3_client.delete_object(
+            Bucket=image.bucket_name, Key=image.file_name)
+        return response
+
+    @classmethod
+    def create_bucket(cls, bucket_name, region='us-west-1'):
         '''' Create a new bucket on S3
 
             If a region is not specified, the bucket is created in the S3 default
@@ -46,7 +51,7 @@ class AWS:
         return True
 
     @classmethod
-    def signed_url(self, bucket_name, key, expires=3600):
+    def signed_url(cls, bucket_name, key, expires=3600):
         '''
         Fetch signed URL from AWS S3.
             Params:
@@ -64,12 +69,12 @@ class AWS:
         return url
 
     @classmethod
-    def object_url(self, bucket_name, key):
+    def object_url(cls, bucket_name, key):
         ''' Construct Object URL -> requires read access '''
         return f'https://{bucket_name}.s3.amazonaws.com/{key}'
 
     @classmethod
-    def download(self, bucket_name, file_name):
+    def download(cls, bucket_name, file_name):
         '''
         Download a file from S3.
 
@@ -96,7 +101,7 @@ class AWS:
             return False
 
     @classmethod
-    def upload(self, file, bucket_name, file_name, ext):
+    def upload(cls, file, bucket_name, file_name, ext):
         '''
         Uploads a file to S3 bucket.
 

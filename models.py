@@ -185,7 +185,21 @@ class Image(db.Model):
 
         return True
 
-    @ classmethod
+    @classmethod
+    def delete_image(cls, image):
+        ''' Deletes an image from both DB and s3.
+                Accepts: id'''
+
+        try:
+            Image.query.filter_by(id=image.id).delete()
+            AWS.delete_object(image)
+        except ValueError as error:
+            print(error)
+            return {"errors": str(error)}
+
+        return True
+
+    @classmethod
     def fetch_metadata(cls, file):
         ''' Extract metadata of an image from request
         TODO:'''
