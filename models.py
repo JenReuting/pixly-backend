@@ -81,10 +81,12 @@ class Image(db.Model):
 
     @ classmethod
     def allowed_file(cls, filename):
+        ''' '''
         return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
     @ classmethod
     def get_unique_key(cls):
+        ''' '''
         uuid_key = uuid.uuid4().hex
         return uuid_key
 
@@ -100,29 +102,35 @@ class Image(db.Model):
                 Pushes image to database, and uploads to s3.
                 returns image object
         '''
-        # file_type = Image.get_file_type(file.filename)
+
         id = Image.get_unique_key()
         ext = Image.get_file_type(file.filename)
-
         file_name = f'{id}.{ext}'
+        image_url = AWS.object_url(bucket_name, file_name)
 
-        # extension = Image.get_file_type
-        s3_image_url = AWS.upload(
-            file, bucket_name, key=file_name, extension=ext)
-        image = Image(
-            id=id,
-            ext=ext,
-            title=title,
-            file_name=file_name,
-            image_url=s3_image_url,
-            bucket_name=bucket_name,
-            description=description,
-        )
+        # Add Image to DB
+        try:
+            image = Image(
+                id=id,
+                ext=ext,
+                title=title,
+                file_name=file_name,
+                image_url=image_url,
+                bucket_name=bucket_name,
+                description=description,
+            )
+        except TypeError as e:
+            print(e)
 
-        print(f' -----> BACKEND API - SQL -----> Image added to Database')
+            # Add image to AWS S3
+        try:
+            AWS.upload(file, bucket_name, file_name=file_name, extension=ext)
+        except ValueError as e:
+            print(e)
 
         db.session.add(image)
 
+        print(f' -----> BACKEND API - SQL -----> Image added to Database')
         return image
 
     @classmethod
@@ -132,15 +140,26 @@ class Image(db.Model):
         img_content = s3_object['Body'].ready()
         return img_content
 
-    # def update(self, file):
-    #     ''' Method for updating image content.
+    def update(self, pil_img, updated_img):
+        ''' Method for updating image content.
 
-    #     Accepts a file, uploads it to S3 under same key.
-    #     Returns Image
-    #     '''
+        Accepts a file, uploads it to S3 under same key.
+        Returns Image
+        '''
 
-    #     file.key = self.file_name
-    #     # s3_image_url = AWS.upload(file, bucket_name)
+        try:
+            in_mem_file = io.BytesIO()
+            updated_img.save(in_mem_file, format=pil_img.format)
+            in_mem_file.seek(0)
+        except BufferError as e:
+            print(e)
+
+        try:
+            AWS.upload(in_mem_file, self.bucket_name,
+                       file_name=self.file_name,
+                       extension=self.ext)
+        except ValueError as e:
+            print(e)
 
     def serialize(self):
         ''' serialize self for JSON response '''
@@ -174,22 +193,12 @@ class Image(db.Model):
 
         # im = Image.open(io.BytesIO(buffer))
 
-    def rotate_img(self, degrees=45):
-        ''' Used to rotate an image , clockwise'''
-        print('rotate()-> received', self, 'degrees: ', degrees)
+    # @classmet
 
-        img_pil = Pil_Image.open(urlopen(self.image_url))
-        img_rotated = img_pil.rotate(degrees)
-        return img_rotated.tobytes()
-
-    def package(self):
+    def fetch_from_url(self):
+        ''' Fetch image content from AWS '''
         pil_image = Pil_Image.open(urlopen(self.image_url))
-
-        in_mem_file = io.BytesIO()
-        pil_image.save(in_mem_file, format=pil_image.format)
-        in_mem_file.seek(0)
-
-        return in_mem_file
+        return pil_image
 
     # def extract_metadata():
 

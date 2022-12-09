@@ -70,7 +70,7 @@ class AWS:
         return f'https://{bucket_name}.s3.amazonaws.com/{key}'
 
     @classmethod
-    def download(self, bucket_name, file_name, key=None):
+    def download(self, bucket_name, file_name):
         '''
         Download a file from S3.
 
@@ -81,14 +81,14 @@ class AWS:
 
             '''
 
-        if key is None:
-            key = file_name
+        # if key is None:
+        #     key = file_name
 
         try:
             with open(file_name, 'wb') as file:
                 file = s3_client.download_fileobj(
                     bucket_name,
-                    key,
+                    file_name,
                     file
                 )
                 return ('file', file)
@@ -97,7 +97,7 @@ class AWS:
             return False
 
     @classmethod
-    def upload(self, file, bucket_name, key, extension):
+    def upload(self, file, bucket_name, file_name, extension):
         '''
         Uploads a file to S3 bucket.
 
@@ -110,7 +110,7 @@ class AWS:
                 True if successful upload, else False
         '''
 
-        print('key from AWS', key)
+        print('key from AWS', file_name)
 
         content_type = f"image/{extension}"
 
@@ -118,17 +118,15 @@ class AWS:
             s3_client.upload_fileobj(
                 file,
                 bucket_name,
-                key,
+                file_name,
                 ExtraArgs={
                     'ContentType': content_type
                 }
             )
+            return True
             print(f' -----> BACKEND API - AWS S3 -----> Image uploaded')
 
         except ClientError as error:
             print(error)
             return {"errors": str(error)}
-
-        url = self.object_url(bucket_name, key)
-
-        return url
+            return False
