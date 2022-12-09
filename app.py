@@ -1,13 +1,13 @@
 from models import (
     db, connect_db, Image
 )
-from flask_debugtoolbar import DebugToolbarExtension
+# from flask_debugtoolbar import DebugToolbarExtension
 
 import os
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from AWS.AWS import AWS
+# from AWS.AWS import AWS
 
 app = Flask(__name__)
 CORS(app)
@@ -53,7 +53,7 @@ def log_request():
 @ app.route('/upload', methods=["POST"])
 def upload_image():
     """ Handle image upload. Adds image and returns data about new image.
-    """
+    TODO: """
 
     file = request.files.get('image') or None
     title = request.form.get('title') or None
@@ -86,7 +86,7 @@ def upload_image():
 
 @ app.route('/images/', methods=['GET'])
 def get_all_images():
-    ''' Returns data for ALL images.
+    ''' TODO:Returns data for ALL images.
             Params:
                 limit: number of items to return, (indexes)
             Returns:
@@ -105,7 +105,7 @@ def get_all_images():
 
 @ app.route('/images/<id>', methods=['GET'])
 def get_image(id):
-    ''' Returns data for a single image.
+    ''' TODO:Returns data for a single image.
             Params:
                 file_name like: 'file_name.jpg'
                 limit: number of items to return, (indexes)
@@ -127,9 +127,12 @@ def get_image(id):
     return jsonify(image=serialized)
 
 
+############################# Image Update ################################
+
+
 @app.route('/images/<id>', methods=['PATCH'])
 def update_image(id):
-    ''' Handles updates to a specific image.
+    ''' TODO: Handles updates to a specific image.
         Params:
             file_name like: 'file_name.jpg'
             changes: 'rotate', 'bw', 'sepia'
@@ -145,15 +148,17 @@ def update_image(id):
     try:
         image: Image = Image.query.filter(
             Image.id.like(f"%{id}%")).first()
+
         pil_img = image.fetch_from_url()
+
         rotated = pil_img.rotate(90)
+
         image.update(pil_img, rotated)
         serialized = image.serialize()
 
     except ValueError as error:
         print(error)
         return {"errors": str(error)}
-        return False
 
     return jsonify(image=serialized)
 

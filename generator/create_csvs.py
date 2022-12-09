@@ -43,7 +43,7 @@ with open('generator/images.csv', 'w') as images_csv:
             image_url=url,
             bucket_name='seed-bucket',
             description=fake.sentence(),
-            creation_date=fake.date()
+            creation_date=fake.get_random_datetime()
         ))
 
 

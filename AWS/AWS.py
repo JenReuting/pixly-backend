@@ -1,4 +1,3 @@
-# from werkzeug.utils import secure_filename
 from botocore.exceptions import ClientError
 import boto3
 import os
@@ -109,12 +108,7 @@ class AWS:
             Returns:
                 True if successful upload, else False
         '''
-
-        print('AWS file ----> ', file)
-        print('AWS key ----> ', file_name)
-        print('AWS bucket_name ----> ', bucket_name)
-        print('AWS extension ----> ', ext)
-
+        print(file)
         try:
             s3_client.upload_fileobj(
                 file,
@@ -130,4 +124,3 @@ class AWS:
         except ClientError as error:
             print(error)
             return {"errors": str(error)}
-            return False

@@ -2,9 +2,8 @@
 
 ## GETTING STARTED
 
-### CREATE AND SEED DATABASE
+###
 
-#### From ./PIXLY-BACKEND enter into shell
+### CREATE DB  / SEED
 
-        `psql < pixly.sql`
-        Press enter for both prompts
+        `ipython seed`
