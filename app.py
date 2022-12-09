@@ -143,7 +143,7 @@ def update_image(id):
     '''
     image = Image.query.get_or_404(id)
     request_json = request.get_json()
-    action = request_json.get('changes') or None
+    action = request_json.get('change') or None
     # action = request.args.get('changes') or None
 
     if action:
