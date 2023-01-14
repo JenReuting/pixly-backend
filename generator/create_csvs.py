@@ -1,11 +1,10 @@
 """Generate CSVs of random data for Pixly.
 """
 import csv
-from random import choice, randint, sample
-from itertools import permutations
-import requests
+from random import choice
 from faker import Faker
-from generator.helpers import get_random_datetime
+from generator import helpers
+
 
 IMAGE_CSV_HEADERS = ['id', 'ext', 'file_name', 'title',
                      'image_url', 'bucket_name', 'description', 'creation_date']
@@ -16,7 +15,6 @@ NUM_METADATA = 100
 
 fake = Faker()
 
-
 # # Generate random  image URLs to use for seeded images
 
 image_urls = [
@@ -24,7 +22,6 @@ image_urls = [
     for kind, count in [("lego", 10), ("men", 100), ("women", 100)]
     for i in range(count)
 ]
-
 
 with open('generator/images.csv', 'w') as images_csv:
     images_writer = csv.DictWriter(images_csv, fieldnames=IMAGE_CSV_HEADERS)
@@ -43,7 +40,7 @@ with open('generator/images.csv', 'w') as images_csv:
             image_url=url,
             bucket_name='seed-bucket',
             description=fake.sentence(),
-            creation_date=fake.get_random_datetime()
+            creation_date=helpers.get_random_datetime()
         ))
 
 

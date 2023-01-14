@@ -7,9 +7,7 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-# from AWS.AWS import AWS
 import helpers
-import copy
 
 
 app = Flask(__name__)
