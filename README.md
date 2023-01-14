@@ -1,6 +1,6 @@
-# Warbler
+# Pixly
 
-Warbler is a full stack web-application to upload, edit, and browse image files.
+Pixly is a full stack web-application to upload, edit, and browse image files.
 
 # Table of Contents
 1. [Features](#Features)
