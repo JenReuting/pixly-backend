@@ -7,9 +7,7 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-# from AWS.AWS import AWS
 import helpers
-import copy
 
 
 app = Flask(__name__)
@@ -50,10 +48,51 @@ def log_request():
     print(
         f' -----> BACKEND API - INCOMING REQUEST -----> {request}')
 
+############################# All Requests ################################
+
+
+@app.route('/', methods=['GET'])
+def home():
+    """ Handle routes to homepage. """
+
+    message = {
+        'PIXLY': 'Welcome to Pixly',
+        'routes': {
+            'fetch_all_images': {
+                'help_text': 'Returns data for all images in DB.',
+                'method': 'GET',
+                'route': '/images',
+                'returns': '''{Images: [{id, ext, url, file_name, title, description, creation_date}...]''',
+            },
+            'fetch_image_by_id': {
+                'help_text': 'Returns image data for a single image by ID',
+                'method': 'GET',
+                'route': '/images/<id>',
+                'returns': '''{Image:{id, ext, url, file_name, title, description, creation_date}''',
+            },
+            'update_image': {
+                'help_text': 'Updates image data for a single image by ID',
+                'method': 'PATCH',
+                'route': '/images/<id>',
+                'params': "changes : {'bw'}",
+                'returns': '''{Image:{id, ext, url, file_name, title, description, creation_date}''',
+            },
+            'delete_image': {
+                'help_text': 'Deletes image data for a single image by ID',
+                'method': 'DELETE',
+                'route': '/images/<id>',
+                'returns': '''Image deleted <id> ''',
+            }
+
+        }
+    }
+
+    return jsonify(message)
+
 
 ############################# Image Upload ################################
 
-@ app.route('/upload', methods=["POST"])
+@app.route('/upload', methods=["POST"])
 def upload_image():
     """ Handle image upload. Adds image and returns data about new image.
     TODO: """

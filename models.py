@@ -4,7 +4,6 @@ from PIL.ExifTags import TAGS
 from urllib.request import urlopen
 import io
 from datetime import datetime
-from botocore.exceptions import ClientError
 from AWS.AWS import AWS
 import uuid
 
