@@ -11,13 +11,13 @@ db = SQLAlchemy()
 
 
 def connect_db(app):
-    """ Connect to database. """
+    """Connect to database."""
     app.app_context().push()
     db.app = app
     db.init_app(app)
 
 
-DEFAULT_IMAGE_URL = './default.jpg'
+DEFAULT_IMAGE_URL = "./default.jpg"
 ALLOWED_EXTENSIONS = {"jpg", "jpeg"}
 
 
@@ -26,49 +26,28 @@ class Image(db.Model):
     Image in the system. Loaded to the DB, and to AWS s3.
     """
 
-    __tablename__ = 'images'
+    __tablename__ = "images"
 
     def __repr__(self):
-        rep = f'Image(id: {str(self.id)}, file_name: {str(self.file_name)}, bucket_name: {str(self.bucket_name)})'
+        rep = f"Image(id: {str(self.id)}, file_name: {str(self.file_name)}, bucket_name: {str(self.bucket_name)})"
         return rep
 
-    id = db.Column(
-        db.Text,
-        primary_key=True)
+    id = db.Column(db.Text, primary_key=True)
 
-    ext = db.Column(
-        db.Text,
-        nullable=False,
-        unique=False
-    )
+    ext = db.Column(db.Text, nullable=False, unique=False)
 
-    title = db.Column(
-        db.Text,
-        nullable=True
-    )
+    title = db.Column(db.Text, nullable=True)
 
-    file_name = db.Column(
-        db.Text,
-        nullable=False,
-        unique=True
-    )
+    file_name = db.Column(db.Text, nullable=False, unique=True)
 
     image_url = db.Column(
         db.Text,
         default=DEFAULT_IMAGE_URL,
     )
 
-    bucket_name = db.Column(
-        db.Text,
-        nullable=False,
-        unique=False
-    )
+    bucket_name = db.Column(db.Text, nullable=False, unique=False)
 
-    description = db.Column(
-        db.Text,
-        nullable=True,
-        unique=False
-    )
+    description = db.Column(db.Text, nullable=True, unique=False)
 
     creation_date = db.Column(
         db.DateTime,
@@ -77,37 +56,37 @@ class Image(db.Model):
     )
 
     # An images metadata can be accessed with img.img_metadata
-    img_metadata = db.relationship('Img_Metadata', backref="image")
+    img_metadata = db.relationship("Img_Metadata", backref="image")
 
-    @ classmethod
+    @classmethod
     def allowed_file(cls, filename):
-        ''' TODO:'''
-        return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+        """TODO:"""
+        return (
+            "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+        )
 
-    @ classmethod
+    @classmethod
     def get_unique_key(cls):
-        ''' TODO:'''
+        """Creates a unique key for an image"""
         uuid_key = uuid.uuid4().hex
         return uuid_key
 
     # Extracts file type from image name and returns it
     @classmethod
     def get_file_type(cls, filename):
-        '''TODO:'''
-        return "." in filename and \
-            filename.rsplit(".", 1)[1].lower()
+        """Gets the file type for the image"""
+        return "." in filename and filename.rsplit(".", 1)[1].lower()
 
     @classmethod
     def create(cls, file, bucket_name, title=None, description=None):
-        ''' Method for adding an image.
-                Pushes image to database, and uploads to s3.
-                returns image object
-                TODO:
-        '''
+        """Method for adding an image.
+        Pushes image to database, and uploads to s3.
+        returns image object
+        """
 
         id = Image.get_unique_key()
         ext = Image.get_file_type(file.filename)
-        file_name = f'{id}.{ext}'
+        file_name = f"{id}.{ext}"
         image_url = AWS.object_url(bucket_name, file_name)
 
         # Add Image to DB.
@@ -125,10 +104,7 @@ class Image(db.Model):
             # parse metadata, add to db FIXME: fix - file IO issues
             md = cls.fetch_metadata(file)
             for k, v in md:
-                metadata = Img_Metadata(
-                    tag_name=k,
-                    value=v
-                )
+                metadata = Img_Metadata(tag_name=k, value=v)
                 image.img_metadata.append(metadata)
 
         except TypeError as error:
@@ -138,31 +114,33 @@ class Image(db.Model):
         # After adding to DB, upload to AWS S3
         try:
             file.seek(0)
-            AWS.upload(file, bucket_name, file_name, ext=ext)
+            print("Model - create() - file: ", file)
+            success = AWS.upload(file, bucket_name, file_name, ext=ext)
+            print("Image successfully uploaded to AWS S3 ===> ", success)
         except ValueError as error:
             print(error)
             return {"errors": str(error)}
 
         db.session.add(image)
 
-        print(f' -----> BACKEND API - SQL -----> Image added to Database')
+        # print(f' -----> BACKEND API - SQL -----> Image added to Database')
         return id
 
-    @ classmethod
+    @classmethod
     def fetch_binary_img(cls, file_name, bucket_name):
-        ''' Call to AWS API, retrieve binary data. return binary
-        TODO:'''
+        """Call to AWS API, retrieve binary data. return binary
+        """
         s3_object = AWS.get_object(file_name, bucket_name)
-        img_content = s3_object['Body'].ready()
+        img_content = s3_object["Body"].ready()
         return img_content
 
     def update(self, pil_img, updated_img):
-        ''' Method for updating image content.
+        """Method for updating image content.
 
         Accepts a file, uploads it to S3 under same key.
         Returns True / False
-        TODO:
-        '''
+        
+        """
         # pil_img.show()
         # updated_img.show()
 
@@ -177,10 +155,10 @@ class Image(db.Model):
             return {"errors": str(error)}
 
         try:
-            'AWS UPLOAD'
-            AWS.upload(in_mem_file, self.bucket_name,
-                       file_name=self.file_name,
-                       ext=self.ext)
+            "AWS UPLOAD"
+            AWS.upload(
+                in_mem_file, self.bucket_name, file_name=self.file_name, ext=self.ext
+            )
         except ValueError as error:
             print(error)
             return {"errors": str(error)}
@@ -189,8 +167,8 @@ class Image(db.Model):
 
     @classmethod
     def delete_image(cls, image):
-        ''' Deletes an image from both DB and s3.
-                Accepts: id'''
+        """Deletes an image from both DB and s3.
+        Accepts: id"""
 
         try:
             Image.query.filter_by(id=image.id).delete()
@@ -203,8 +181,8 @@ class Image(db.Model):
 
     @classmethod
     def fetch_metadata(cls, file):
-        ''' Extract metadata of an image from request
-        TODO:'''
+        """Extract metadata of an image from request
+        """
         breakpoint
 
         meta = []
@@ -219,9 +197,9 @@ class Image(db.Model):
         return meta
 
     def serialize(self):
-        ''' serialize self for JSON response
-        TODO:'''
-        print('serializing response')
+        """serialize self for JSON response
+        """
+        print("serializing response")
 
         # unpack Metadata object to parseable
         md = {md.tag_name: md.value for md in self.img_metadata}
@@ -233,28 +211,28 @@ class Image(db.Model):
             "title": self.title,
             "description": self.description,
             "creation_date": self.creation_date,
-            "metadata": md
+            "metadata": md,
         }
 
-################################ PILLOW METHODS ###############################
+    ################################ PILLOW METHODS ###############################
 
-        # These are methods for transforming an image, using the Pillow library.
-        # Reading from URL
-        # from PIL import Image as PIL
-        # from urllib.request import urlopen
+    # These are methods for transforming an image, using the Pillow library.
+    # Reading from URL
+    # from PIL import Image as PIL
+    # from urllib.request import urlopen
 
-        # url = "https://python-pillow.org/images/pillow-logo.png"
-        # img = PIL.open(urlopen(url))
+    # url = "https://python-pillow.org/images/pillow-logo.png"
+    # img = PIL.open(urlopen(url))
 
-        # Reading from binary data
-        # from PIL import Pil_Image
-        # import io
+    # Reading from binary data
+    # from PIL import Pil_Image
+    # import io
 
-        # im = Image.open(io.BytesIO(buffer))
+    # im = Image.open(io.BytesIO(buffer))
 
     def fetch_from_url(self):
-        ''' Fetch image content from AWS
-        TODO: '''
+        """Fetch image content from AWS
+        TODO:"""
         pil_image = PIL.open(urlopen(self.image_url))
         return pil_image
 
@@ -277,10 +255,11 @@ class Image(db.Model):
 
 ################################ Img_Metadata ###############################
 
+
 class Img_Metadata(db.Model):
     """A piece of image metadata TODO:"""
 
-    __tablename__ = 'img_metadata'
+    __tablename__ = "img_metadata"
 
     id = db.Column(
         db.Integer,
@@ -298,7 +277,7 @@ class Img_Metadata(db.Model):
 
     file_id = db.Column(
         db.Text,
-        db.ForeignKey('images.id', ondelete='CASCADE'),
+        db.ForeignKey("images.id", ondelete="CASCADE"),
         nullable=False,
     )
 
