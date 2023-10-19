@@ -3,6 +3,7 @@
 import os
 from dotenv import load_dotenv
 from flask import Flask
+from flask_cors import CORS
 import boto3
 
 # from flask_debugtoolbar import DebugToolbarExtension
@@ -14,17 +15,20 @@ import boto3
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
 
 # app.config['SQLALCHEMY_DATABASE_URL'] = os.environ['DATABASE_URL'].replace("postgres://", "postgresql://")
 
 
-app.config['S3_BUCKET'] = os.environ["AWS_BUCKET_NAME"]
-app.config['S3_KEY'] = os.environ["AWS_ACCESS_KEY"]
-app.config['S3_SECRET'] = os.environ["AWS_ACCESS_SECRET"]
-app.config['S3_LOCATION'] = 'http://{}.s3.amazonaws.com/'.format(os.environ["S3_BUCKET_NAME"])
+app.config["S3_BUCKET"] = os.environ["AWS_BUCKET_NAME"]
+app.config["S3_KEY"] = os.environ["AWS_ACCESS_KEY"]
+app.config["S3_SECRET"] = os.environ["AWS_ACCESS_SECRET"]
+app.config["S3_LOCATION"] = "http://{}.s3.amazonaws.com/".format(
+    os.environ["S3_BUCKET_NAME"]
+)
 # toolbar = DebugToolbarExtension(app)
 
-BASE_URL = 'https://pixlyapp.s3-us-west-1.amazonaws.com/'
+BASE_URL = "https://pixlyapp.s3-us-west-1.amazonaws.com/"
 
 # connect_db(app)
 
@@ -33,7 +37,7 @@ BASE_URL = 'https://pixlyapp.s3-us-west-1.amazonaws.com/'
 s3 = boto3.client(
     "s3",
     aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
-    aws_secret_access_key=os.environ["AWS_ACCESS_SECRET"]
+    aws_secret_access_key=os.environ["AWS_ACCESS_SECRET"],
 )
 
 ############################# Image Upload / Serving ################################
@@ -62,18 +66,17 @@ s3 = boto3.client(
 #         print("file successfully uploaded! ")
 #         return jsonify(output)
 
-#data = request.json
+# data = request.json
 
 # call to AWS api - get image link
 
+
 def upload_file_to_s3(file, acl="public-read"):
+    with open(file, "rb") as data:
+        s3.upload_fileobj(data, "pixlyapp", "newKeyWooHOO")
 
-    with open(file, 'rb') as data:
-        s3.upload_fileobj(data, 'pixlyapp', 'newKeyWooHOO')
 
-
-upload_file_to_s3('./test5.jpg')
-
+upload_file_to_s3("./test5.jpg")
 
 
 ############################## Image Modification ###########################
